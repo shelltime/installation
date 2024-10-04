@@ -188,13 +188,5 @@ process_file "fish.fish" "https://raw.githubusercontent.com/malamtime/installati
 add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
 
-# Check if config file exists
-if [ ! -f "$HOME/.malamtime/config.toml" ]; then
-    echo "Config file not found. Initializing malamtime..."
-    malamtime init
-else
-    echo "Config file found. Skipping initialization."
-fi
-
 # Final message
 echo "Everything is done! Feel free to work again."
