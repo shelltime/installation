@@ -84,14 +84,14 @@ fi
 
 # Move the binary to the appropriate location
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
-    sudo mv malamtime /usr/local/bin
+    mv malamtime /usr/local/bin/
 # elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
     # mv malamtime /c/Windows/System32/
 fi
 
 # Clean up
 rm -f "$FILENAME"
-rm -rf malamtime
+# rm -rf malamtime
 
 
 # HELP WANTED
