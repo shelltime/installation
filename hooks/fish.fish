@@ -11,5 +11,5 @@ end
 # Define the postexec function
 function fish_postexec --on-event fish_postexec
     # This event is triggered before each prompt, which is after each command
-    malamtime track -s=fish -id=$MALAM_SESSION_ID -cmd="$argv" -p=post &
+    malamtime track -s=fish -id=$MALAM_SESSION_ID -cmd="$argv" -p=post -r=$status &
 end
