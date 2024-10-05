@@ -189,4 +189,9 @@ add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
 
 # Final message
-echo "Everything is done! Feel free to work again."
+echo "To complete the setup, please follow these steps:"
+echo "1. Visit https://malamtime.com to obtain an open token."
+echo "2. Run the following command in your terminal:"
+echo "   malamtime init --token=TOKEN"
+echo "   (Replace TOKEN with the actual token you received)"
+echo "Only after completing these steps will malamtime be fully functional."
