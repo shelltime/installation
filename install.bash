@@ -81,12 +81,46 @@ else
     exit 1
 fi
 
+# Check if $HOME/.malamtime/bin exists, create if not
+if [ ! -d "$HOME/.malamtime/bin" ]; then
+    echo "Creating $HOME/.malamtime/bin directory..."
+    mkdir -p "$HOME/.malamtime/bin"
+    if [ $? -eq 0 ]; then
+        echo "Directory created successfully."
+    else
+        echo "Failed to create directory. Please check your permissions."
+        exit 1
+    fi
+else
+    echo "$HOME/.malamtime/bin directory already exists."
+fi
 
 # Move the binary to the appropriate location
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
-    mv malamtime /usr/local/bin/
+    mv malamtime "$HOME/.malamtime/bin/"
 # elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
     # mv malamtime /c/Windows/System32/
+fi
+
+# Add $HOME/.malamtime/bin to user path
+if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
+    # For Zsh
+    if [ -f "$HOME/.zshrc" ]; then
+        if ! grep -q '$HOME/.malamtime/bin' "$HOME/.zshrc"; then
+            echo 'export PATH="$HOME/.malamtime/bin:$PATH"' >> "$HOME/.zshrc"
+            echo "Updated .zshrc to include $HOME/.malamtime/bin in PATH"
+        fi
+    fi
+
+    # For Fish
+    if [ -f "$HOME/.config/fish/config.fish" ]; then
+        if ! grep -q '$HOME/.malamtime/bin' "$HOME/.config/fish/config.fish"; then
+            echo 'set -gx PATH $HOME/.malamtime/bin $PATH' >> "$HOME/.config/fish/config.fish"
+            echo "Updated config.fish to include $HOME/.malamtime/bin in PATH"
+        fi
+    fi
+
+    echo "Please restart your shell or run 'source ~/.zshrc' (for Zsh) or 'source ~/.config/fish/config.fish' (for Fish) to apply the changes."
 fi
 
 # Clean up
