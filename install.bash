@@ -145,7 +145,7 @@ fi
 # insert a preexec and postexec script to user configuration, including `zsh` and `fish`
 
 # Define the path
-hooks_path="$HOME/.config/malamtime/hooks"
+hooks_path="$HOME/.malamtime/hooks"
 
 # Check if the directory exists
 if [ ! -d "$hooks_path" ]; then
