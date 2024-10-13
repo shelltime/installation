@@ -105,19 +105,15 @@ fi
 # Add $HOME/.malamtime/bin to user path
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     # For Zsh
-    if [ -f "$HOME/.zshrc" ]; then
-        if ! grep -q '$HOME/.malamtime/bin' "$HOME/.zshrc"; then
-            echo 'export PATH="$HOME/.malamtime/bin:$PATH"' >> "$HOME/.zshrc"
-            echo "Updated .zshrc to include $HOME/.malamtime/bin in PATH"
-        fi
+    if ! grep -q '$HOME/.malamtime/bin' "$HOME/.zshrc"; then
+        echo 'export PATH="$HOME/.malamtime/bin:$PATH"' >> "$HOME/.zshrc"
+        echo "Updated .zshrc to include $HOME/.malamtime/bin in PATH"
     fi
 
     # For Fish
-    if [ -f "$HOME/.config/fish/config.fish" ]; then
-        if ! grep -q '$HOME/.malamtime/bin' "$HOME/.config/fish/config.fish"; then
-            echo 'set -gx PATH $HOME/.malamtime/bin $PATH' >> "$HOME/.config/fish/config.fish"
-            echo "Updated config.fish to include $HOME/.malamtime/bin in PATH"
-        fi
+    if ! grep -q '$HOME/.malamtime/bin' "$HOME/.config/fish/config.fish"; then
+        echo 'set -gx PATH $HOME/.malamtime/bin $PATH' >> "$HOME/.config/fish/config.fish"
+        echo "Updated config.fish to include $HOME/.malamtime/bin in PATH"
     fi
 
     echo "Please restart your shell or run 'source ~/.zshrc' (for Zsh) or 'source ~/.config/fish/config.fish' (for Fish) to apply the changes."
