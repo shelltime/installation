@@ -13,10 +13,19 @@ MALAM_SESSION_ID=$(date +%Y%m%d%H%M%S)
 
 # Define the preexec function
 preexec() {
+    # Check if command starts with exit, logout, or reboot
+    if [[ $argv =~ ^(exit|logout|reboot) ]]; then
+        return
+    fi
+
     malamtime track -s=zsh -id=$MALAM_SESSION_ID -cmd=$argv -p=pre &
 }
 
 # Define the postexec function (in zsh, it's called precmd)
 precmd() {
+    # Check if command starts with exit, logout, or reboot
+    if [[ $argv =~ ^(exit|logout|reboot) ]]; then
+        return
+    fi
     malamtime track -s=zsh -id=$MALAM_SESSION_ID -cmd=$argv -p=post -r=$? &
 }
