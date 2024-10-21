@@ -23,9 +23,10 @@ preexec() {
 
 # Define the postexec function (in zsh, it's called precmd)
 precmd() {
+    LAST_RESULT=$?
     # Check if command starts with exit, logout, or reboot
     if [[ $argv =~ ^(exit|logout|reboot) ]]; then
         return
     fi
-    malamtime track -s=zsh -id=$MALAM_SESSION_ID -cmd=$argv -p=post -r=$? &
+    malamtime track -s=zsh -id=$MALAM_SESSION_ID -cmd=$argv -p=post -r=$LAST_RESULT &
 }

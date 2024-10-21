@@ -21,9 +21,10 @@ end
 
 # Define the postexec function
 function fish_postexec --on-event fish_postexec
+    set -g LAST_RESULT (echo $status)
     if string match -q 'exit*' -- $argv; or string match -q 'logout*' -- $argv; or string match -q 'reboot*' -- $argv
         return
     end
     # This event is triggered before each prompt, which is after each command
-    malamtime track -s=fish -id=$MALAM_SESSION_ID -cmd="$argv" -p=post -r=$status &
+    malamtime track -s=fish -id=$MALAM_SESSION_ID -cmd="$argv" -p=post -r=$LAST_RESULT &
 end
