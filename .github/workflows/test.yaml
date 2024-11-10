@@ -47,3 +47,5 @@ jobs:
           elif [ "${{ matrix.shell }}" = "fish" ]; then
             fish -c "source ~/.config/fish/config.fish && echo 'Fish configuration loaded'"
           fi
+          ls ~/.malamtime
+          ls ~/.malamtime/bin
