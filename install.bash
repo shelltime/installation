@@ -69,7 +69,7 @@ fi
 
 # Download the file
 FILENAME=$(basename "$URL")
-curl -sLO "$URL"
+curl -LO "$URL"
 
 # Extract the file
 if [[ "$FILENAME" == *.zip ]]; then
