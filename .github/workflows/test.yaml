@@ -37,7 +37,7 @@ jobs:
       - name: Test install script in Fish
         if: matrix.shell == 'fish'
         run: |
-          bash./install.bash
+          bash ./install.bash
         shell: fish {0}
 
       - name: Verify installation
