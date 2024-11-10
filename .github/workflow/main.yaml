@@ -1,0 +1,48 @@
+name: Shell Installation Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-shells:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        shell: ["zsh", "fish"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Zsh and Fish
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh fish
+
+      - name: Setup shell environment
+        run: |
+          mkdir -p ~/.config/fish
+          mkdir -p ~/.zsh
+
+      - name: Test install script in Zsh
+        if: matrix.shell == 'zsh'
+        run: |
+          bash ./install.bash
+        shell: zsh {0}
+      - name: Test install script in Fish
+        if: matrix.shell == 'fish'
+        run: |
+          fish ./install.bash
+        shell: fish {0}
+
+      - name: Verify installation
+        run: |
+          if [ "${{ matrix.shell }}" = "zsh" ]; then
+            zsh -c "source ~/.zshrc && echo 'Zsh configuration loaded'"
+          elif [ "${{ matrix.shell }}" = "fish" ]; then
+            fish -c "source ~/.config/fish/config.fish && echo 'Fish configuration loaded'"
+          fi
