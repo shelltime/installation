@@ -71,6 +71,12 @@ fi
 FILENAME=$(basename "$URL")
 curl -LO "$URL"
 
+# Check if the download was successful
+if [ ! -f "$FILENAME" ]; then
+    echo "Error: Failed to download $FILENAME"
+    exit 1
+fi
+
 # Extract the file
 if [[ "$FILENAME" == *.zip ]]; then
     unzip "$FILENAME" > /dev/null
@@ -78,6 +84,12 @@ elif [[ "$FILENAME" == *.tar.gz ]]; then
     tar zxvf "$FILENAME" > /dev/null
 else
     echo "Unsupported file type: $FILENAME"
+    exit 1
+fi
+
+# Check if the malamtime file exists
+if [ ! -f "malamtime" ]; then
+    echo "Error: malamtime binary not found after extraction"
     exit 1
 fi
 
@@ -217,6 +229,10 @@ process_file "fish.fish" "https://raw.githubusercontent.com/malamtime/installati
 # Add source lines to config files
 add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
+
+echo "\n"
+echo "======================================================="
+echo "\n"
 
 # Final message
 echo "To complete the setup, please follow these steps:"
