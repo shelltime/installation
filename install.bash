@@ -79,8 +79,10 @@ fi
 
 # Extract the file
 if [[ "$FILENAME" == *.zip ]]; then
+    rm "$FILENAME"
     unzip "$FILENAME" > /dev/null
 elif [[ "$FILENAME" == *.tar.gz ]]; then
+    rm "$FILENAME"
     tar zxvf "$FILENAME" > /dev/null
 else
     echo "Unsupported file type: $FILENAME"
