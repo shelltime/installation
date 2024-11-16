@@ -27,7 +27,7 @@ cd "$curr_time_dir"
 if [[ "$OS" == "Darwin" ]]; then
     TARGET_FILE_NAME="${TARGET_FILE_NAME}${OS}"
     if [[ "$ARCH" == "x86_64" ]]; then
-        URL="${TARGET_FILE_NAME}_amd64_v1.zip"
+        URL="${TARGET_FILE_NAME}_x86_64.zip"
     elif [[ "$ARCH" == "arm64" ]]; then
         URL="${TARGET_FILE_NAME}_arm64.zip"
     else
