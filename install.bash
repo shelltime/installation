@@ -18,6 +18,10 @@ fi
 TARGET_FILE_NAME="https://github.com/malamtime/cli/releases/latest/download/cli_"
 
 cd /tmp
+curr_time_dir="shelltime_install_$(date +"%Y%m%d_%H%M%S")"
+mkdir -p "$curr_time_dir"
+cd "$curr_time_dir"
+
 
 # Set the download URL based on the OS and architecture
 if [[ "$OS" == "Darwin" ]]; then
@@ -79,10 +83,8 @@ fi
 
 # Extract the file
 if [[ "$FILENAME" == *.zip ]]; then
-    rm "$FILENAME"
     unzip "$FILENAME" > /dev/null
 elif [[ "$FILENAME" == *.tar.gz ]]; then
-    rm "$FILENAME"
     tar zxvf "$FILENAME" > /dev/null
 else
     echo "Unsupported file type: $FILENAME"
@@ -134,8 +136,11 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
 fi
 
 # Clean up
-rm -f "$FILENAME"
-# rm -rf shelltime
+
+cd /tmp
+if [ -d "/tmp/$curr_time_dir" ]; then
+    rm -rf "/tmp/$curr_time_dir"
+fi
 
 
 # HELP WANTED
