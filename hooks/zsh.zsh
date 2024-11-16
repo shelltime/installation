@@ -1,15 +1,15 @@
 #!/usr/bin/env zsh
 
-# Check if malamtime command exists
-if ! command -v malamtime &> /dev/null
+# Check if shelltime command exists
+if ! command -v shelltime &> /dev/null
 then
-    echo "Warning: malamtime command not found. Please install it to track shell usage."
+    echo "Warning: shelltime command not found. Please install it to track shell usage."
 else
-    malamtime gc
+    shelltime gc
 fi
 
 # Create a timestamp for the session when the shell starts
-MALAM_SESSION_ID=$(date +%Y%m%d%H%M%S)
+SESSION_ID=$(date +%Y%m%d%H%M%S)
 
 # Define the preexec function
 preexec() {
@@ -18,7 +18,7 @@ preexec() {
         return
     fi
 
-    malamtime track -s=zsh -id=$MALAM_SESSION_ID -cmd=$argv -p=pre &
+    shelltime track -s=zsh -id=$SESSION_ID -cmd=$argv -p=pre &
 }
 
 # Define the postexec function (in zsh, it's called precmd)
@@ -28,5 +28,5 @@ precmd() {
     if [[ $argv =~ ^(exit|logout|reboot) ]]; then
         return
     fi
-    malamtime track -s=zsh -id=$MALAM_SESSION_ID -cmd=$argv -p=post -r=$LAST_RESULT &
+    shelltime track -s=zsh -id=$SESSION_ID -cmd=$argv -p=post -r=$LAST_RESULT &
 }

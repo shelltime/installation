@@ -87,16 +87,16 @@ else
     exit 1
 fi
 
-# Check if the malamtime file exists
-if [ ! -f "malamtime" ]; then
-    echo "Error: malamtime binary not found after extraction"
+# Check if the shelltime file exists
+if [ ! -f "shelltime" ]; then
+    echo "Error: shelltime binary not found after extraction"
     exit 1
 fi
 
-# Check if $HOME/.malamtime/bin exists, create if not
-if [ ! -d "$HOME/.malamtime/bin" ]; then
-    echo "Creating $HOME/.malamtime/bin directory..."
-    mkdir -p "$HOME/.malamtime/bin"
+# Check if $HOME/.shelltime/bin exists, create if not
+if [ ! -d "$HOME/.shelltime/bin" ]; then
+    echo "Creating $HOME/.shelltime/bin directory..."
+    mkdir -p "$HOME/.shelltime/bin"
     if [ $? -eq 0 ]; then
         echo "Directory created successfully."
     else
@@ -104,28 +104,28 @@ if [ ! -d "$HOME/.malamtime/bin" ]; then
         exit 1
     fi
 else
-    echo "$HOME/.malamtime/bin directory already exists."
+    echo "$HOME/.shelltime/bin directory already exists."
 fi
 
 # Move the binary to the appropriate location
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
-    mv malamtime "$HOME/.malamtime/bin/"
+    mv shelltime "$HOME/.shelltime/bin/"
 # elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-    # mv malamtime /c/Windows/System32/
+    # mv shelltime /c/Windows/System32/
 fi
 
-# Add $HOME/.malamtime/bin to user path
+# Add $HOME/.shelltime/bin to user path
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     # For Zsh
-    if ! grep -q '$HOME/.malamtime/bin' "$HOME/.zshrc"; then
-        echo 'export PATH="$HOME/.malamtime/bin:$PATH"' >> "$HOME/.zshrc"
-        echo "Updated .zshrc to include $HOME/.malamtime/bin in PATH"
+    if ! grep -q '$HOME/.shelltime/bin' "$HOME/.zshrc"; then
+        echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.zshrc"
+        echo "Updated .zshrc to include $HOME/.shelltime/bin in PATH"
     fi
 
     # For Fish
-    if ! grep -q '$HOME/.malamtime/bin' "$HOME/.config/fish/config.fish"; then
-        echo 'set -gx PATH $HOME/.malamtime/bin $PATH' >> "$HOME/.config/fish/config.fish"
-        echo "Updated config.fish to include $HOME/.malamtime/bin in PATH"
+    if ! grep -q '$HOME/.shelltime/bin' "$HOME/.config/fish/config.fish"; then
+        echo 'set -gx PATH $HOME/.shelltime/bin $PATH' >> "$HOME/.config/fish/config.fish"
+        echo "Updated config.fish to include $HOME/.shelltime/bin in PATH"
     fi
 
     echo "Please restart your shell or run 'source ~/.zshrc' (for Zsh) or 'source ~/.config/fish/config.fish' (for Fish) to apply the changes."
@@ -133,7 +133,7 @@ fi
 
 # Clean up
 rm -f "$FILENAME"
-# rm -rf malamtime
+# rm -rf shelltime
 
 
 # HELP WANTED
@@ -141,11 +141,11 @@ rm -f "$FILENAME"
 # if you know, please let me know.
 
 # Success message
-echo "Installation successful! You can try the command by running 'malamtime -h'."
+echo "Installation successful! You can try the command by running 'shelltime -h'."
 
 if [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-	echo "Please note that the binaries are not installed yet. please move `/tmp/malamtime` to your `/bin/` folder manually."
-	echo "btw if you know where should the binaries be installed, please raise an issue or pull request. (https://github.com/malamtime/cli)."
+	echo "Please note that the binaries are not installed yet. please move `/tmp/shelltime` to your `/bin/` folder manually."
+	echo "btw if you know where should the binaries be installed, please raise an issue or pull request. (https://github.com/shelltime/cli)."
 fi
 
 
@@ -153,7 +153,7 @@ fi
 # insert a preexec and postexec script to user configuration, including `zsh` and `fish`
 
 # Define the path
-hooks_path="$HOME/.malamtime/hooks"
+hooks_path="$HOME/.shelltime/hooks"
 
 # Check if the directory exists
 if [ ! -d "$hooks_path" ]; then
@@ -236,11 +236,11 @@ echo "\n"
 
 # Final message
 echo "To complete the setup, please follow these steps:"
-echo "1. Visit https://malamtime.com to obtain an open token."
+echo "1. Visit https://shelltime.xyz to obtain an open token."
 echo "2. Run the following command in your terminal:"
-echo "   malamtime init --token=TOKEN"
+echo "   shelltime init --token=TOKEN"
 echo "   (Replace TOKEN with the actual token you received)"
 echo "3. Source your shell configuration file:"
 echo "   For Zsh users: source ~/.zshrc"
 echo "   For Fish users: source ~/.config/fish/config.fish"
-echo "Only after completing these steps will malamtime be fully functional."
+echo "Only after completing these steps will shelltime be fully functional."
