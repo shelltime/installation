@@ -13,20 +13,25 @@ SESSION_ID=$(date +%Y%m%d%H%M%S)
 
 # Define the preexec function
 preexec() {
+    local CMD=$1
     # Check if command starts with exit, logout, or reboot
-    if [[ $argv =~ ^(exit|logout|reboot) ]]; then
+    if [[ $CMD =~ ^(exit|logout|reboot) ]]; then
         return
     fi
 
-    shelltime track -s=zsh -id=$SESSION_ID -cmd=$argv -p=pre &> /dev/null
+    shelltime track -s=zsh -id=$SESSION_ID -cmd=$CMD -p=pre &> /dev/null
+    unset $CMD
 }
 
 # Define the postexec function (in zsh, it's called precmd)
 precmd() {
-    LAST_RESULT=$?
+    local LAST_RESULT=$?
+    local CMD=$(fc -ln -1)
     # Check if command starts with exit, logout, or reboot
-    if [[ $argv =~ ^(exit|logout|reboot) ]]; then
+    if [[ $CMD =~ ^(exit|logout|reboot) ]]; then
         return
     fi
-    shelltime track -s=zsh -id=$SESSION_ID -cmd=$argv -p=post -r=$LAST_RESULT &> /dev/null
+    shelltime track -s=zsh -id=$SESSION_ID -cmd=$CMD -p=post -r=$LAST_RESULT &> /dev/null
+    unset $CMD
+    unset $LAST_RESULT
 }
