@@ -16,7 +16,7 @@ function fish_preexec --on-event fish_preexec
         return
     end
 
-    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=pre &
+    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=pre &> /dev/null
 end
 
 # Define the postexec function
@@ -26,5 +26,5 @@ function fish_postexec --on-event fish_postexec
         return
     end
     # This event is triggered before each prompt, which is after each command
-    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=post -r=$LAST_RESULT &
+    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=post -r=$LAST_RESULT &> /dev/null
 end
