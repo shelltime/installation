@@ -20,7 +20,6 @@ preexec() {
     fi
 
     shelltime track -s=zsh -id=$SESSION_ID -cmd=$CMD -p=pre &> /dev/null
-    unset $CMD
 }
 
 # Define the postexec function (in zsh, it's called precmd)
@@ -32,6 +31,4 @@ precmd() {
         return
     fi
     shelltime track -s=zsh -id=$SESSION_ID -cmd=$CMD -p=post -r=$LAST_RESULT &> /dev/null
-    unset $CMD
-    unset $LAST_RESULT
 }
