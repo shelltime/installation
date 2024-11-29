@@ -237,17 +237,17 @@ process_file "fish.fish" "https://raw.githubusercontent.com/malamtime/installati
 add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
 
-echo "\n"
-echo "======================================================="
-echo "\n"
+echo ""
+echo "-------------------------------------------------------"
+echo ""
 
 # Final message
 echo "To complete the setup, please follow these steps:"
 echo "1. Visit https://shelltime.xyz to obtain an open token."
 echo "2. Run the following command in your terminal:"
-echo "   shelltime init --token=TOKEN"
+echo "   \033[32mshelltime init --token=TOKEN\033[0m"
 echo "   (Replace TOKEN with the actual token you received)"
 echo "3. Source your shell configuration file:"
-echo "   For Zsh users: source ~/.zshrc"
-echo "   For Fish users: source ~/.config/fish/config.fish"
+echo "   For Zsh users: \033[32msource ~/.zshrc\033[0m"
+echo "   For Fish users: \033[32msource ~/.config/fish/config.fish\033[0m"
 echo "Only after completing these steps will shelltime be fully functional."
