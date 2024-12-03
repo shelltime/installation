@@ -1,7 +1,7 @@
 #!/usr/bin/env fish
 
 # Check if shelltime CLI exists
-if not command -v shelltime &> /dev/null
+if not command -v shelltime > /dev/null
     echo "Warning: shelltime CLI not found. Please install it to enable time tracking."
 else
     shelltime gc
@@ -16,7 +16,7 @@ function fish_preexec --on-event fish_preexec
         return
     end
 
-    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=pre &> /dev/null
+    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=pre > /dev/null
 end
 
 # Define the postexec function
@@ -26,5 +26,5 @@ function fish_postexec --on-event fish_postexec
         return
     end
     # This event is triggered before each prompt, which is after each command
-    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=post -r=$LAST_RESULT &> /dev/null
+    shelltime track -s=fish -id=$SESSION_ID -cmd="$argv" -p=post -r=$LAST_RESULT > /dev/null
 end
