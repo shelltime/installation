@@ -237,6 +237,18 @@ process_file "fish.fish" "https://raw.githubusercontent.com/malamtime/installati
 add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
 
+# Source shell config based on current shell
+if [[ "$SHELL" == *"zsh"* ]]; then
+    echo "Sourcing zsh config..."
+    source "$HOME/.zshrc"
+elif [[ "$SHELL" == *"fish"* ]]; then
+    echo "Sourcing fish config..."
+    source "$HOME/.config/fish/config.fish"
+else
+    echo "Warning: Your current shell ($SHELL) is not supported."
+    echo "Please use zsh or fish shell instead for full functionality."
+fi
+
 echo ""
 echo "-------------------------------------------------------"
 echo ""
