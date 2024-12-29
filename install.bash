@@ -15,61 +15,69 @@ if ! command_exists curl; then
     exit 1
 fi
 
-TARGET_FILE_NAME="https://github.com/malamtime/cli/releases/latest/download/cli_"
+CLI_FILE_NAME="https://github.com/malamtime/cli/releases/latest/download/cli_"
+DAEMON_FILE_NAME="${CLI_FILE_NAME}daemon_"
 
 cd /tmp
 curr_time_dir="shelltime_install_$(date +"%Y%m%d_%H%M%S")"
 mkdir -p "$curr_time_dir"
 cd "$curr_time_dir"
 
+get_download_url() {
+    local baseUrl="$1"
+    local downloadUrl=""
 
-# Set the download URL based on the OS and architecture
-if [[ "$OS" == "Darwin" ]]; then
-    TARGET_FILE_NAME="${TARGET_FILE_NAME}${OS}"
-    if [[ "$ARCH" == "x86_64" ]]; then
-        URL="${TARGET_FILE_NAME}_x86_64.zip"
-    elif [[ "$ARCH" == "arm64" ]]; then
-        URL="${TARGET_FILE_NAME}_arm64.zip"
+    if [[ "$OS" == "Darwin" ]]; then
+        baseUrl="${baseUrl}${OS}"
+        if [[ "$ARCH" == "x86_64" ]]; then
+            downloadUrl="${baseUrl}_x86_64.zip"
+        elif [[ "$ARCH" == "arm64" ]]; then
+            downloadUrl="${baseUrl}_arm64.zip"
+        else
+            echo "Unsupported architecture: $ARCH on macOS"
+            exit 1
+        fi
+        if ! command_exists unzip; then
+            echo "Error: unzip is not installed."
+            exit 1
+        fi
+    elif [[ "$OS" == "Linux" ]]; then
+        baseUrl="${baseUrl}${OS}"
+        if [[ "$ARCH" == "x86_64" ]]; then
+            downloadUrl="${baseUrl}_x86_64.tar.gz"
+        elif [[ "$ARCH" == "aarch64" ]]; then
+            downloadUrl="${baseUrl}_arm64.tar.gz"
+        else
+            echo "Unsupported architecture: $ARCH on Linux"
+            exit 1
+        fi
+        if ! command_exists tar; then
+            echo "Error: tar is not installed."
+            exit 1
+        fi
+    elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
+        baseUrl="${baseUrl}Windows"
+        if [[ "$ARCH" == "x86_64" ]]; then
+            downloadUrl="${baseUrl}_x86_64.zip"
+        elif [[ "$ARCH" == "aarch64" ]]; then
+            downloadUrl="${baseUrl}_arm64.zip"
+        else
+            echo "Unsupported architecture: $ARCH on Windows"
+            exit 1
+        fi
+        if ! command_exists unzip; then
+            echo "Error: unzip is not installed."
+            exit 1
+        fi
     else
-        echo "Unsupported architecture: $ARCH on macOS"
+        echo "Unsupported OS: $OS"
         exit 1
     fi
-    if ! command_exists unzip; then
-        echo "Error: unzip is not installed."
-        exit 1
-    fi
-elif [[ "$OS" == "Linux" ]]; then
-    TARGET_FILE_NAME="${TARGET_FILE_NAME}${OS}"
-    if [[ "$ARCH" == "x86_64" ]]; then
-        URL="${TARGET_FILE_NAME}_x86_64.tar.gz"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        URL="${TARGET_FILE_NAME}_arm64.tar.gz"
-    else
-        echo "Unsupported architecture: $ARCH on Linux"
-        exit 1
-    fi
-    if ! command_exists tar; then
-        echo "Error: tar is not installed."
-        exit 1
-    fi
-elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-    TARGET_FILE_NAME="${TARGET_FILE_NAME}Windows"
-    if [[ "$ARCH" == "x86_64" ]]; then
-        URL="${TARGET_FILE_NAME}_x86_64.zip"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        URL="${TARGET_FILE_NAME}_arm64.zip"
-    else
-        echo "Unsupported architecture: $ARCH on Windows"
-        exit 1
-    fi
-    if ! command_exists unzip; then
-        echo "Error: unzip is not installed."
-        exit 1
-    fi
-else
-    echo "Unsupported OS: $OS"
-    exit 1
-fi
+
+    echo "$downloadUrl"
+}
+
+URL=$(get_download_url "$CLI_FILE_NAME")
 
 # Download the file
 FILENAME=$(basename "$URL")
