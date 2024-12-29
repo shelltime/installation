@@ -114,8 +114,26 @@ fi
 # Move the binary to the appropriate location
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     mv shelltime "$HOME/.shelltime/bin/"
+    if [ -f "shelltime-daemon" ]; then
+        if [ -f "$HOME/.shelltime/bin/shelltime-daemon.bak" ]; then
+            rm "$HOME/.shelltime/bin/shelltime-daemon.bak"
+        fi
+        mv shelltime-daemon "$HOME/.shelltime/bin/shelltime-daemon.bak"
+    fi
 # elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
     # mv shelltime /c/Windows/System32/
+fi
+
+# Check if $HOME/.shelltime/daemon exists, create if not
+if [ ! -d "$HOME/.shelltime/daemon" ]; then
+    echo "Creating $HOME/.shelltime/daemon directory..."
+    mkdir -p "$HOME/.shelltime/daemon"
+    if [ $? -eq 0 ]; then
+        # do nothing
+    else
+        echo "Failed to create directory. Please check your permissions."
+        exit 1
+    fi
 fi
 
 # Add $HOME/.shelltime/bin to user path
