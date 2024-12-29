@@ -136,9 +136,7 @@ fi
 if [ ! -d "$HOME/.shelltime/daemon" ]; then
     echo "Creating $HOME/.shelltime/daemon directory..."
     mkdir -p "$HOME/.shelltime/daemon"
-    if [ $? -eq 0 ]; then
-        # do nothing
-    else
+    if [ $? -ne 0 ]; then
         echo "Failed to create directory. Please check your permissions."
         exit 1
     fi
