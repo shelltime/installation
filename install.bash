@@ -81,7 +81,7 @@ URL=$(get_download_url "$CLI_FILE_NAME")
 
 # Download the file
 FILENAME=$(basename "$URL")
-curl -LO "$URL"
+curl -sSLO "$URL"
 
 # Check if the download was successful
 if [ ! -f "$FILENAME" ]; then
