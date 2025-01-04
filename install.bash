@@ -152,7 +152,13 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
 
     # For Fish
     if ! grep -q '$HOME/.shelltime/bin' "$HOME/.config/fish/config.fish"; then
-        echo 'set -gx PATH $HOME/.shelltime/bin $PATH' >> "$HOME/.config/fish/config.fish"
+        if [ ! -d "$HOME/.config/fish" ]; then
+            mkdir -p "$HOME/.config/fish"
+        fi
+        if [ ! -f "$HOME/.config/fish/config.fish" ]; then
+            touch "$HOME/.config/fish/config.fish"
+        fi
+        echo 'fish_add_path $HOME/.shelltime/bin' >> "$HOME/.config/fish/config.fish"
         echo "Updated config.fish to include $HOME/.shelltime/bin in PATH"
     fi
 
