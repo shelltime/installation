@@ -15,24 +15,28 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
-        shell: ["zsh", "fish"]
+        shell: ["zsh", "fish", "bash"]
       fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
-      - name: Install Zsh and Fish
+
+      - name: Install Zsh and Fish on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            sudo apt-get update
-            sudo apt-get install -y zsh fish
-          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            brew install zsh fish
-          fi
+          sudo apt-get update
+          sudo apt-get install -y zsh fish
+
+      - name: Install Zsh and Fish on MacOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install zsh fish
 
       - name: Setup shell environment
         run: |
           mkdir -p ~/.config/fish
           mkdir -p ~/.zsh
+          touch ~/.bashrc
 
       - name: Test install script in Zsh
         if: matrix.shell == 'zsh'
@@ -51,6 +55,10 @@ jobs:
             zsh -c "source ~/.zshrc && echo 'Zsh configuration loaded'"
           elif [ "${{ matrix.shell }}" = "fish" ]; then
             fish -c "source ~/.config/fish/config.fish && echo 'Fish configuration loaded'"
+          elif [ "${{ matrix.shell }}" = "bash" ]; then
+            bash -c "source ~/.bashrc && echo 'Bash configuration loaded'"
           fi
+          [ -f ~/.shelltime/hooks/bash-preexec.sh ] || (echo "bash-preexec.sh not found in ~/.shelltime/hooks!" && exit 1)
           ls ~/.shelltime
           ls ~/.shelltime/bin
+          ls ~/.shelltime/hooks
