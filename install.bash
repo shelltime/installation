@@ -146,6 +146,7 @@ fi
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     # For Zsh
     if ! grep -q '$HOME/.shelltime/bin' "$HOME/.zshrc"; then
+        echo '# Added by shelltime' >> "$HOME/.zshrc"
         echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.zshrc"
         echo "Updated .zshrc to include $HOME/.shelltime/bin in PATH"
     fi
@@ -158,8 +159,15 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
         if [ ! -f "$HOME/.config/fish/config.fish" ]; then
             touch "$HOME/.config/fish/config.fish"
         fi
+        echo '# Added by shelltime' >> "$HOME/.config/fish/config.fish"
         echo 'fish_add_path $HOME/.shelltime/bin' >> "$HOME/.config/fish/config.fish"
         echo "Updated config.fish to include $HOME/.shelltime/bin in PATH"
+    fi
+
+    if ! grep -q '$HOME/.shelltime/bin' "$HOME/.bashrc"; then
+        echo '# Added by shelltime' >> "$HOME/.bashrc"
+        echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.bashrc"
+        echo "Updated .bashrc to include $HOME/.shelltime/bin in PATH"
     fi
 
     echo "Please restart your shell or run 'source ~/.zshrc' (for Zsh) or 'source ~/.config/fish/config.fish' (for Fish) to apply the changes."
@@ -263,9 +271,15 @@ process_file "zsh.zsh" "https://raw.githubusercontent.com/malamtime/installation
 # Process fish.fish
 process_file "fish.fish" "https://raw.githubusercontent.com/malamtime/installation/master/hooks/fish.fish"
 
+# Process bash.bash
+process_file "bash-preexec.sh" "https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh"
+process_file "bash.bash" "https://raw.githubusercontent.com/malamtime/installation/master/hooks/bash.bash"
+
 # Add source lines to config files
 add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
+add_source_to_config "$HOME/.bashrc" "${hooks_path}/bash.bash"
+
 
 echo ""
 echo "-------------------------------------------------------"
