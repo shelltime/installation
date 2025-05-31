@@ -24,10 +24,12 @@ fi
 
 # Create a timestamp for the session when the shell starts
 SESSION_ID=$(date +%Y%m%d%H%M%S)
+LAST_COMMAND=""
 
 # Function to be executed before each command
 preexec_invoke_cmd() {
-    local CMD="$BASH_COMMAND"
+    local CMD="$1"
+    LAST_COMMAND="$CMD"
     # Check if command starts with exit, logout, or reboot
     if [[ "$CMD" =~ ^(exit|logout|reboot) ]]; then
         return
@@ -45,7 +47,7 @@ preexec_invoke_cmd() {
 precmd_invoke_cmd() {
     local LAST_RESULT=$?
     # BASH_COMMAND in precmd is the *previous* command
-    local CMD="$BASH_COMMAND"
+    local CMD="$LAST_COMMAND"
     # Check if command starts with exit, logout, or reboot
     if [[ "$CMD" =~ ^(exit|logout|reboot) ]]; then
         return
