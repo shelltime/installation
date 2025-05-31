@@ -243,7 +243,6 @@ process_file() {
     curl -sSL "${url}" -o "${hooks_path}/${file}"
 }
 
-
 # Function to add source line to config file if not already present
 add_source_to_config() {
     local config_file="$1"

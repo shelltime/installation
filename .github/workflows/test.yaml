@@ -22,8 +22,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Zsh and Fish
         run: |
-          sudo apt-get update
-          sudo apt-get install -y zsh fish
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            sudo apt-get update
+            sudo apt-get install -y zsh fish
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            brew install zsh fish
+          fi
 
       - name: Setup shell environment
         run: |
