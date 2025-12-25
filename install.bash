@@ -107,16 +107,11 @@ fi
 
 # Check if $HOME/.shelltime/bin exists, create if not
 if [ ! -d "$HOME/.shelltime/bin" ]; then
-    echo "Creating $HOME/.shelltime/bin directory..."
     mkdir -p "$HOME/.shelltime/bin"
-    if [ $? -eq 0 ]; then
-        echo "Directory created successfully."
-    else
-        echo "Failed to create directory. Please check your permissions."
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to create $HOME/.shelltime/bin directory."
         exit 1
     fi
-else
-    echo "$HOME/.shelltime/bin directory already exists."
 fi
 
 # Move the binary to the appropriate location
@@ -134,10 +129,9 @@ fi
 
 # Check if $HOME/.shelltime/daemon exists, create if not
 if [ ! -d "$HOME/.shelltime/daemon" ]; then
-    echo "Creating $HOME/.shelltime/daemon directory..."
     mkdir -p "$HOME/.shelltime/daemon"
     if [ $? -ne 0 ]; then
-        echo "Failed to create directory. Please check your permissions."
+        echo "Error: Failed to create $HOME/.shelltime/daemon directory."
         exit 1
     fi
 fi
@@ -148,7 +142,6 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     if ! grep -q '$HOME/.shelltime/bin' "$HOME/.zshrc"; then
         echo '# Added by shelltime' >> "$HOME/.zshrc"
         echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.zshrc"
-        echo "Updated .zshrc to include $HOME/.shelltime/bin in PATH"
     fi
 
     # For Fish
@@ -161,16 +154,13 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
         fi
         echo '# Added by shelltime' >> "$HOME/.config/fish/config.fish"
         echo 'fish_add_path $HOME/.shelltime/bin' >> "$HOME/.config/fish/config.fish"
-        echo "Updated config.fish to include $HOME/.shelltime/bin in PATH"
     fi
 
+    # For Bash
     if ! grep -q '$HOME/.shelltime/bin' "$HOME/.bashrc"; then
         echo '# Added by shelltime' >> "$HOME/.bashrc"
         echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.bashrc"
-        echo "Updated .bashrc to include $HOME/.shelltime/bin in PATH"
     fi
-
-    echo "Please restart your shell or run 'source ~/.zshrc' (for Zsh) or 'source ~/.config/fish/config.fish' (for Fish) to apply the changes."
 fi
 
 # Clean up
@@ -185,12 +175,9 @@ fi
 # I don't know where the `/bin` folder in windows. so i don't know where should the binaries be installed.
 # if you know, please let me know.
 
-# Success message
-echo "Installation successful! You can try the command by running 'shelltime -h'."
-
 if [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-	echo "Please note that the binaries are not installed yet. please move `/tmp/shelltime` to your `/bin/` folder manually."
-	echo "btw if you know where should the binaries be installed, please raise an issue or pull request. (https://github.com/shelltime/cli)."
+	echo "Note: Please move /tmp/shelltime to your bin folder manually."
+	echo "If you know where binaries should be installed on Windows, please open an issue: https://github.com/shelltime/cli"
 fi
 
 
@@ -202,17 +189,9 @@ hooks_path="$HOME/.shelltime/hooks"
 
 # Check if the directory exists
 if [ ! -d "$hooks_path" ]; then
-    echo "The directory $hooks_path does not exist."
-    echo "Creating the directory..."
-
-    # Create the directory and its parent directories if they don't exist
     mkdir -p "$hooks_path"
-
-    # Check if the creation was successful
-    if [ $? -eq 0 ]; then
-        echo "Directory created successfully."
-    else
-        echo "Failed to create the directory. Please check your permissions."
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to create $hooks_path directory."
         exit 1
     fi
 fi
@@ -222,7 +201,6 @@ fi
 check_and_delete_bak() {
     local file="$1"
     if [ -f "${hooks_path}/${file}.bak" ]; then
-        echo "Deleting ${file}.bak..."
         rm "${hooks_path}/${file}.bak"
     fi
 }
@@ -234,12 +212,10 @@ process_file() {
 
     # Check if the file exists and rename it
     if [ -f "${hooks_path}/${file}" ]; then
-        echo "Renaming existing ${file} to ${file}.bak..."
         mv "${hooks_path}/${file}" "${hooks_path}/${file}.bak"
     fi
 
     # Download the new file
-    echo "Downloading new ${file}..."
     curl -sSL "${url}" -o "${hooks_path}/${file}"
 }
 
@@ -250,10 +226,7 @@ add_source_to_config() {
     local source_line="source ${source_file}"
 
     if ! grep -qF "${source_line}" "${config_file}"; then
-        echo "Adding source line to ${config_file}..."
         echo "${source_line}" >> "${config_file}"
-    else
-        echo "Source line already exists in ${config_file}."
     fi
 }
 
@@ -281,14 +254,9 @@ add_source_to_config "$HOME/.bashrc" "${hooks_path}/bash.bash"
 
 
 echo ""
-echo "-------------------------------------------------------"
+echo "Installation complete!"
 echo ""
-
-# Final message
-echo "To complete the setup, please follow these steps:"
-echo "1. Source your shell configuration file:"
-echo "   For Zsh users: source ~/.zshrc"
-echo "   For Fish users: source ~/.config/fish/config.fish"
-echo "   For Bash users: source ~/.bashrc"
-echo "2. Run 'shelltime init' and follow the prompts to login and obtain an open token"
-echo "3. All done! You're ready to go"
+echo "Next steps:"
+echo "  1. Reload your shell:  source ~/.zshrc  (or ~/.bashrc / ~/.config/fish/config.fish)"
+echo "  2. Run:  shelltime init"
+echo ""
