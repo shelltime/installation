@@ -40,7 +40,7 @@ preexec_invoke_cmd() {
         return
     fi
 
-    shelltime track -s=bash -id=$SESSION_ID -cmd="$CMD" -p=pre &> /dev/null
+    shelltime track -s=bash -id=$SESSION_ID -cmd="$CMD" -p=pre --ppid=$PPID &> /dev/null
 }
 
 # Function to be executed after each command (before prompt)
@@ -57,13 +57,13 @@ precmd_invoke_cmd() {
     if [[ "$CMD" =~ ^shelltime ]]; then
         return
     fi
-    
+
     # Ensure CMD is not empty or the precmd_invoke_cmd itself
     if [ -z "$CMD" ] || [ "$CMD" == "precmd_invoke_cmd" ]; then
         return
     fi
 
-    shelltime track -s=bash -id=$SESSION_ID -cmd="$CMD" -p=post -r=$LAST_RESULT &> /dev/null
+    shelltime track -s=bash -id=$SESSION_ID -cmd="$CMD" -p=post -r=$LAST_RESULT --ppid=$PPID &> /dev/null
 }
 
 # Set the functions for bash-preexec

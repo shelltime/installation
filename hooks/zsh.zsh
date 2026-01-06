@@ -19,7 +19,7 @@ preexec() {
         return
     fi
 
-    shelltime track -s=zsh -id=$SESSION_ID -cmd=$CMD -p=pre &> /dev/null
+    shelltime track -s=zsh -id=$SESSION_ID -cmd="$CMD" -p=pre --ppid=$PPID &> /dev/null
 }
 
 # Define the postexec function (in zsh, it's called precmd)
@@ -30,5 +30,5 @@ precmd() {
     if [[ $CMD =~ ^(exit|logout|reboot) ]]; then
         return
     fi
-    shelltime track -s=zsh -id=$SESSION_ID -cmd=$CMD -p=post -r=$LAST_RESULT &> /dev/null
+    shelltime track -s=zsh -id=$SESSION_ID -cmd="$CMD" -p=post -r=$LAST_RESULT --ppid=$PPID &> /dev/null
 }
