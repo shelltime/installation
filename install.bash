@@ -252,6 +252,10 @@ add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
 add_source_to_config "$HOME/.bashrc" "${hooks_path}/bash.bash"
 
+# Reinstall daemon if shelltime is available
+if command_exists shelltime; then
+    shelltime daemon reinstall > /dev/null 2>&1
+fi
 
 echo ""
 echo "Installation complete!"
