@@ -131,35 +131,40 @@ fi
 if [ ! -d "$HOME/.shelltime/daemon" ]; then
     mkdir -p "$HOME/.shelltime/daemon"
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to create $HOME/.shelltime/daemon directory."
-        exit 1
+        echo "Warning: Failed to create $HOME/.shelltime/daemon directory. Daemon functionality may be unavailable."
     fi
 fi
 
 # Add $HOME/.shelltime/bin to user path
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     # For Zsh
-    if ! grep -q '$HOME/.shelltime/bin' "$HOME/.zshrc"; then
-        echo '# Added by shelltime' >> "$HOME/.zshrc"
-        echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.zshrc"
+    if [ -f "$HOME/.zshrc" ]; then
+        if ! grep -q '$HOME/.shelltime/bin' "$HOME/.zshrc"; then
+            echo '# Added by shelltime' >> "$HOME/.zshrc"
+            echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.zshrc"
+        fi
     fi
 
     # For Fish
-    if ! grep -q '$HOME/.shelltime/bin' "$HOME/.config/fish/config.fish"; then
+    if command_exists fish; then
         if [ ! -d "$HOME/.config/fish" ]; then
             mkdir -p "$HOME/.config/fish"
         fi
         if [ ! -f "$HOME/.config/fish/config.fish" ]; then
             touch "$HOME/.config/fish/config.fish"
         fi
-        echo '# Added by shelltime' >> "$HOME/.config/fish/config.fish"
-        echo 'fish_add_path $HOME/.shelltime/bin' >> "$HOME/.config/fish/config.fish"
+        if ! grep -q '$HOME/.shelltime/bin' "$HOME/.config/fish/config.fish"; then
+            echo '# Added by shelltime' >> "$HOME/.config/fish/config.fish"
+            echo 'fish_add_path $HOME/.shelltime/bin' >> "$HOME/.config/fish/config.fish"
+        fi
     fi
 
     # For Bash
-    if ! grep -q '$HOME/.shelltime/bin' "$HOME/.bashrc"; then
-        echo '# Added by shelltime' >> "$HOME/.bashrc"
-        echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.bashrc"
+    if [ -f "$HOME/.bashrc" ]; then
+        if ! grep -q '$HOME/.shelltime/bin' "$HOME/.bashrc"; then
+            echo '# Added by shelltime' >> "$HOME/.bashrc"
+            echo 'export PATH="$HOME/.shelltime/bin:$PATH"' >> "$HOME/.bashrc"
+        fi
     fi
 fi
 
@@ -191,8 +196,7 @@ hooks_path="$HOME/.shelltime/hooks"
 if [ ! -d "$hooks_path" ]; then
     mkdir -p "$hooks_path"
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to create $hooks_path directory."
-        exit 1
+        echo "Warning: Failed to create $hooks_path directory. Shell hooks may be unavailable."
     fi
 fi
 
@@ -248,9 +252,15 @@ process_file "bash-preexec.sh" "https://raw.githubusercontent.com/rcaloras/bash-
 process_file "bash.bash" "https://raw.githubusercontent.com/malamtime/installation/master/hooks/bash.bash"
 
 # Add source lines to config files
-add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
-add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
-add_source_to_config "$HOME/.bashrc" "${hooks_path}/bash.bash"
+if [ -f "$HOME/.zshrc" ]; then
+    add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
+fi
+if [ -f "$HOME/.config/fish/config.fish" ]; then
+    add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
+fi
+if [ -f "$HOME/.bashrc" ]; then
+    add_source_to_config "$HOME/.bashrc" "${hooks_path}/bash.bash"
+fi
 
 # Reinstall daemon if shelltime is available
 if command_exists shelltime; then
