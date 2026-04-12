@@ -60,5 +60,9 @@ jobs:
           fi
           [ -f ~/.shelltime/hooks/bash-preexec.sh ] || (echo "bash-preexec.sh not found in ~/.shelltime/hooks!" && exit 1)
           ls ~/.shelltime
-          ls ~/.shelltime/bin
+          if command -v brew >/dev/null 2>&1 && brew list shelltime >/dev/null 2>&1; then
+            which shelltime || (echo "shelltime not in PATH via Homebrew!" && exit 1)
+          else
+            ls ~/.shelltime/bin
+          fi
           ls ~/.shelltime/hooks

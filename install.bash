@@ -9,11 +9,27 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Flag to track whether Homebrew installation was used
+BREW_INSTALLED=false
+
 # Check for required commands
 if ! command_exists curl; then
     echo "Error: curl is not installed."
     exit 1
 fi
+
+# On macOS, prefer Homebrew installation if brew is available
+if [[ "$OS" == "Darwin" ]] && command_exists brew; then
+    echo "Homebrew detected on macOS. Attempting to install via brew..."
+    if brew install shelltime/tap/shelltime; then
+        BREW_INSTALLED=true
+        echo "Successfully installed shelltime via Homebrew."
+    else
+        echo "Homebrew installation failed. Falling back to manual installation..."
+    fi
+fi
+
+if [ "$BREW_INSTALLED" = false ]; then
 
 CLI_FILE_NAME="https://github.com/malamtime/cli/releases/latest/download/cli_"
 DAEMON_FILE_NAME="${CLI_FILE_NAME}daemon_"
@@ -127,14 +143,6 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     # mv shelltime /c/Windows/System32/
 fi
 
-# Check if $HOME/.shelltime/daemon exists, create if not
-if [ ! -d "$HOME/.shelltime/daemon" ]; then
-    mkdir -p "$HOME/.shelltime/daemon"
-    if [ $? -ne 0 ]; then
-        echo "Warning: Failed to create $HOME/.shelltime/daemon directory. Daemon functionality may be unavailable."
-    fi
-fi
-
 # Add $HOME/.shelltime/bin to user path
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     # For Zsh
@@ -185,6 +193,15 @@ if [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWI
 	echo "If you know where binaries should be installed on Windows, please open an issue: https://github.com/shelltime/cli"
 fi
 
+fi  # end of manual installation block
+
+# Check if $HOME/.shelltime/daemon exists, create if not
+if [ ! -d "$HOME/.shelltime/daemon" ]; then
+    mkdir -p "$HOME/.shelltime/daemon"
+    if [ $? -ne 0 ]; then
+        echo "Warning: Failed to create $HOME/.shelltime/daemon directory. Daemon functionality may be unavailable."
+    fi
+fi
 
 # STEP 2
 # insert a preexec and postexec script to user configuration, including `zsh` and `fish`
