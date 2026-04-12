@@ -24,6 +24,15 @@ if [[ "$OS" == "Darwin" ]] && command_exists brew; then
     if brew install shelltime/tap/shelltime; then
         BREW_INSTALLED=true
         echo "Successfully installed shelltime via Homebrew."
+        # Rename old manual-install binaries so the system uses the Homebrew version
+        if [ -f "$HOME/.shelltime/bin/shelltime" ]; then
+            mv "$HOME/.shelltime/bin/shelltime" "$HOME/.shelltime/bin/shelltime.bak"
+            echo "Renamed ~/.shelltime/bin/shelltime to shelltime.bak (now using Homebrew version)"
+        fi
+        if [ -f "$HOME/.shelltime/bin/shelltime-daemon" ]; then
+            mv "$HOME/.shelltime/bin/shelltime-daemon" "$HOME/.shelltime/bin/shelltime-daemon.bak"
+            echo "Renamed ~/.shelltime/bin/shelltime-daemon to shelltime-daemon.bak (now using Homebrew version)"
+        fi
     else
         echo "Homebrew installation failed. Falling back to manual installation..."
     fi
