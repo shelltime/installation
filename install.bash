@@ -40,7 +40,7 @@ fi
 
 if [ "$BREW_INSTALLED" = false ]; then
 
-CLI_FILE_NAME="https://github.com/malamtime/cli/releases/latest/download/cli_"
+CLI_FILE_NAME="https://github.com/shelltime/cli/releases/latest/download/cli_"
 DAEMON_FILE_NAME="${CLI_FILE_NAME}daemon_"
 
 cd /tmp
@@ -143,10 +143,7 @@ fi
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     mv shelltime "$HOME/.shelltime/bin/"
     if [ -f "shelltime-daemon" ]; then
-        if [ -f "$HOME/.shelltime/bin/shelltime-daemon.bak" ]; then
-            rm "$HOME/.shelltime/bin/shelltime-daemon.bak"
-        fi
-        mv shelltime-daemon "$HOME/.shelltime/bin/shelltime-daemon.bak"
+        mv shelltime-daemon "$HOME/.shelltime/bin/"
     fi
 # elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
     # mv shelltime /c/Windows/System32/
@@ -268,14 +265,14 @@ check_and_delete_bak "zsh.zsh"
 check_and_delete_bak "fish.fish"
 
 # Process zsh.zsh
-process_file "zsh.zsh" "https://raw.githubusercontent.com/malamtime/installation/master/hooks/zsh.zsh"
+process_file "zsh.zsh" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/zsh.zsh"
 
 # Process fish.fish
-process_file "fish.fish" "https://raw.githubusercontent.com/malamtime/installation/master/hooks/fish.fish"
+process_file "fish.fish" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/fish.fish"
 
 # Process bash.bash
 process_file "bash-preexec.sh" "https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh"
-process_file "bash.bash" "https://raw.githubusercontent.com/malamtime/installation/master/hooks/bash.bash"
+process_file "bash.bash" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/bash.bash"
 
 # Add source lines to config files
 if [ -f "$HOME/.zshrc" ]; then
