@@ -144,6 +144,12 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     mv shelltime "$HOME/.shelltime/bin/"
     if [ -f "shelltime-daemon" ]; then
         mv shelltime-daemon "$HOME/.shelltime/bin/"
+    else
+        echo "" >&2
+        echo "WARNING: shelltime-daemon binary was NOT found in $FILENAME." >&2
+        echo "         The CLI will attempt to auto-download it on first" >&2
+        echo "         'shelltime daemon install/reinstall'." >&2
+        echo "" >&2
     fi
 # elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
     # mv shelltime /c/Windows/System32/
