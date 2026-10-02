@@ -4,7 +4,11 @@ Welcome to shelltime! This guide will help you install the necessary tools using
 
 ## Quick Install
 
-The installer supports macOS and Linux (including WSL). Failed downloads stop installation and preserve existing shell hooks.
+The installer supports macOS and Linux (including WSL). A failed binary download
+stops installation. If a hook download fails, its existing hook and backup are
+preserved while the remaining hooks and daemon setup continue. The installer
+then exits with an error so you can retry. Upgrades migrate existing source lines
+without loading hooks twice.
 
 You can install shelltime tools by running the following command in your terminal:
 
@@ -20,7 +24,9 @@ Visit [shelltime.xyz](https://shelltime.xyz) for guides and usage documentation.
 
 ## Testing
 
-Run `python3 -m unittest discover -s tests` to check download failures and hook preservation without network requests or changes to your shell configuration.
+Run `python3 -m unittest discover -s tests` to check upgrades, download failures,
+paths containing spaces, and platform detection without network requests or
+changes to your shell configuration. CI runs these tests on Linux and macOS.
 
 ## Having Issues?
 

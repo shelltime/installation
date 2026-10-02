@@ -1,57 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# Determine the OS and architecture
-OS=$(uname -s)
-ARCH=$(uname -m)
-
-case "$OS" in
-    Darwin|Linux) ;;
-    *) echo "Unsupported OS: $OS. Use macOS, Linux, or WSL." >&2; exit 1 ;;
-esac
-
-# Function to check if a command is available
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
-
-# Flag to track whether Homebrew installation was used
-BREW_INSTALLED=false
-
-# Check for required commands
-if ! command_exists curl; then
-    echo "Error: curl is not installed."
-    exit 1
-fi
-
-# On macOS, prefer Homebrew installation if brew is available
-if [[ "$OS" == "Darwin" ]] && command_exists brew; then
-    echo "Homebrew detected on macOS. Attempting to install via brew..."
-    if brew install shelltime/tap/shelltime; then
-        BREW_INSTALLED=true
-        echo "Successfully installed shelltime via Homebrew."
-        # Rename old manual-install binaries so the system uses the Homebrew version
-        if [ -f "$HOME/.shelltime/bin/shelltime" ]; then
-            mv "$HOME/.shelltime/bin/shelltime" "$HOME/.shelltime/bin/shelltime.bak"
-            echo "Renamed ~/.shelltime/bin/shelltime to shelltime.bak (now using Homebrew version)"
-        fi
-        if [ -f "$HOME/.shelltime/bin/shelltime-daemon" ]; then
-            mv "$HOME/.shelltime/bin/shelltime-daemon" "$HOME/.shelltime/bin/shelltime-daemon.bak"
-            echo "Renamed ~/.shelltime/bin/shelltime-daemon to shelltime-daemon.bak (now using Homebrew version)"
-        fi
-    else
-        echo "Homebrew installation failed. Falling back to manual installation..."
-    fi
-fi
-
-if [ "$BREW_INSTALLED" = false ]; then
-
-CLI_FILE_NAME="https://github.com/shelltime/cli/releases/latest/download/cli_"
-DAEMON_FILE_NAME="${CLI_FILE_NAME}daemon_"
-
-curr_time_dir=$(mktemp -d "${TMPDIR:-/tmp}/shelltime-install.XXXXXX")
-trap 'rm -rf -- "$curr_time_dir"' EXIT
-cd "$curr_time_dir"
 
 get_download_url() {
     local baseUrl="$1"
@@ -85,20 +37,6 @@ get_download_url() {
             echo "Error: tar is not installed."
             exit 1
         fi
-    elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-        baseUrl="${baseUrl}Windows"
-        if [[ "$ARCH" == "x86_64" ]]; then
-            downloadUrl="${baseUrl}_x86_64.zip"
-        elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
-            downloadUrl="${baseUrl}_arm64.zip"
-        else
-            echo "Unsupported architecture: $ARCH on Windows"
-            exit 1
-        fi
-        if ! command_exists unzip; then
-            echo "Error: unzip is not installed."
-            exit 1
-        fi
     else
         echo "Unsupported OS: $OS"
         exit 1
@@ -107,11 +45,123 @@ get_download_url() {
     echo "$downloadUrl"
 }
 
+process_file() {
+    local file="$1"
+    local url="$2"
+    local pending_file
+    pending_file=$(mktemp "${hooks_path}/${file}.XXXXXX") || return 1
+    if ! curl -fsSL --connect-timeout 15 --max-time 60 "$url" -o "$pending_file"; then
+        rm -f -- "$pending_file"
+        echo "Error: Failed to download $file. Existing hook and backup preserved." >&2
+        return 1
+    fi
+    if ! chmod 644 "$pending_file"; then
+        rm -f -- "$pending_file"
+        return 1
+    fi
+    if [ -f "${hooks_path}/${file}" ]; then
+        if ! mv -f -- "${hooks_path}/${file}" "${hooks_path}/${file}.bak"; then
+            rm -f -- "$pending_file"
+            return 1
+        fi
+    fi
+    if ! mv -- "$pending_file" "${hooks_path}/${file}"; then
+        if [ -f "${hooks_path}/${file}.bak" ]; then
+            mv -- "${hooks_path}/${file}.bak" "${hooks_path}/${file}" || true
+        fi
+        rm -f -- "$pending_file"
+        return 1
+    fi
+}
+
+add_source_to_config() {
+    local config_file="$1"
+    local source_file="$2"
+    local pending_config
+    pending_config=$(mktemp "${config_file}.XXXXXX") || return 1
+
+    # Migrate the legacy unquoted spelling and remove previously emitted duplicates.
+    if ! SHELLTIME_SOURCE_FILE="$source_file" awk '
+        BEGIN {
+            legacy = "source " ENVIRON["SHELLTIME_SOURCE_FILE"]
+            quoted = "source \"" ENVIRON["SHELLTIME_SOURCE_FILE"] "\""
+        }
+        {
+            line = $0
+            sub(/^[[:space:]]+/, "", line)
+            sub(/[[:space:]]+$/, "", line)
+            if (line == legacy || line == quoted) {
+                if (!found) print quoted
+                found = 1
+            } else {
+                print
+            }
+        }
+        END { if (!found) print quoted }
+    ' "$config_file" > "$pending_config"; then
+        rm -f -- "$pending_config"
+        return 1
+    fi
+    # Preserve permissions and symlinks on the user's shell configuration.
+    if ! cat "$pending_config" > "$config_file"; then
+        rm -f -- "$pending_config"
+        return 1
+    fi
+    rm -f -- "$pending_config"
+}
+
+install_shelltime() {
+# Determine the OS and architecture
+OS=$(uname -s)
+ARCH=$(uname -m)
+
+case "$OS" in
+    Darwin|Linux) ;;
+    *) echo "Unsupported OS: $OS. Use macOS, Linux, or WSL." >&2; exit 1 ;;
+esac
+
+# Flag to track whether Homebrew installation was used
+BREW_INSTALLED=false
+
+# Check for required commands
+if ! command_exists curl; then
+    echo "Error: curl is not installed."
+    exit 1
+fi
+
+# On macOS, prefer Homebrew installation if brew is available
+if [[ "$OS" == "Darwin" ]] && command_exists brew; then
+    echo "Homebrew detected on macOS. Attempting to install via brew..."
+    if brew install shelltime/tap/shelltime; then
+        BREW_INSTALLED=true
+        echo "Successfully installed shelltime via Homebrew."
+        # Rename old manual-install binaries so the system uses the Homebrew version
+        if [ -f "$HOME/.shelltime/bin/shelltime" ]; then
+            mv "$HOME/.shelltime/bin/shelltime" "$HOME/.shelltime/bin/shelltime.bak"
+            echo "Renamed ~/.shelltime/bin/shelltime to shelltime.bak (now using Homebrew version)"
+        fi
+        if [ -f "$HOME/.shelltime/bin/shelltime-daemon" ]; then
+            mv "$HOME/.shelltime/bin/shelltime-daemon" "$HOME/.shelltime/bin/shelltime-daemon.bak"
+            echo "Renamed ~/.shelltime/bin/shelltime-daemon to shelltime-daemon.bak (now using Homebrew version)"
+        fi
+    else
+        echo "Homebrew installation failed. Falling back to manual installation..."
+    fi
+fi
+
+if [ "$BREW_INSTALLED" = false ]; then
+
+CLI_FILE_NAME="https://github.com/shelltime/cli/releases/latest/download/cli_"
+
+curr_time_dir=$(mktemp -d "${TMPDIR:-/tmp}/shelltime-install.XXXXXX")
+trap 'rm -rf -- "$curr_time_dir"' EXIT
+cd "$curr_time_dir"
+
 URL=$(get_download_url "$CLI_FILE_NAME")
 
 # Download the file
 FILENAME=$(basename "$URL")
-curl -fSLO --connect-timeout 15 --max-time 300 "$URL"
+curl -fsSLO --connect-timeout 15 --max-time 300 "$URL"
 
 # Check if the download was successful
 if [ ! -f "$FILENAME" ]; then
@@ -137,8 +187,7 @@ fi
 
 # Check if $HOME/.shelltime/bin exists, create if not
 if [ ! -d "$HOME/.shelltime/bin" ]; then
-    mkdir -p "$HOME/.shelltime/bin"
-    if [ $? -ne 0 ]; then
+    if ! mkdir -p "$HOME/.shelltime/bin"; then
         echo "Error: Failed to create $HOME/.shelltime/bin directory."
         exit 1
     fi
@@ -158,8 +207,6 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
         echo "         'shelltime daemon install/reinstall'." >&2
         echo "" >&2
     fi
-# elif [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-    # mv shelltime /c/Windows/System32/
 fi
 
 # Add $HOME/.shelltime/bin to user path
@@ -199,23 +246,13 @@ fi
 
 cd "${TMPDIR:-/tmp}"
 
-
-# HELP WANTED
-# I don't know where the `/bin` folder in windows. so i don't know where should the binaries be installed.
-# if you know, please let me know.
-
-if [[ "$OS" == "MINGW64_NT" ]] || [[ "$OS" == "MSYS_NT" ]] || [[ "$OS" == "CYGWIN_NT" ]]; then
-	echo "Note: Please move /tmp/shelltime to your bin folder manually."
-	echo "If you know where binaries should be installed on Windows, please open an issue: https://github.com/shelltime/cli"
-fi
-
 fi  # end of manual installation block
 
 # Check if $HOME/.shelltime/daemon exists, create if not
 if [ ! -d "$HOME/.shelltime/daemon" ]; then
-    mkdir -p "$HOME/.shelltime/daemon"
-    if [ $? -ne 0 ]; then
-        echo "Warning: Failed to create $HOME/.shelltime/daemon directory. Daemon functionality may be unavailable."
+    if ! mkdir -p "$HOME/.shelltime/daemon"; then
+        echo "Warning: Failed to create $HOME/.shelltime/daemon directory. Daemon functionality may be unavailable." >&2
+        return 1
     fi
 fi
 
@@ -227,76 +264,40 @@ hooks_path="$HOME/.shelltime/hooks"
 
 # Check if the directory exists
 if [ ! -d "$hooks_path" ]; then
-    mkdir -p "$hooks_path"
-    if [ $? -ne 0 ]; then
-        echo "Warning: Failed to create $hooks_path directory. Shell hooks may be unavailable."
-    fi
-fi
-
-
-# Function to check and delete .bak files
-check_and_delete_bak() {
-    local file="$1"
-    if [ -f "${hooks_path}/${file}.bak" ]; then
-        rm "${hooks_path}/${file}.bak"
-    fi
-}
-
-# Function to check, rename, and download files
-process_file() {
-    local file="$1"
-    local url="$2"
-
-    # Download successfully before replacing a working hook.
-    local pending_file
-    pending_file=$(mktemp "${hooks_path}/${file}.XXXXXX")
-    if ! curl -fsSL --connect-timeout 15 --max-time 60 "$url" -o "$pending_file"; then
-        rm -f -- "$pending_file"
-        echo "Error: Failed to download $file. Existing hook preserved." >&2
+    if ! mkdir -p "$hooks_path"; then
+        echo "Warning: Failed to create $hooks_path directory. Shell hooks may be unavailable." >&2
         return 1
     fi
-    if [ -f "${hooks_path}/${file}" ]; then
-        mv "${hooks_path}/${file}" "${hooks_path}/${file}.bak"
-    fi
-    mv "$pending_file" "${hooks_path}/${file}"
-}
+fi
 
-# Function to add source line to config file if not already present
-add_source_to_config() {
-    local config_file="$1"
-    local source_file="$2"
-    local source_line="source \"${source_file}\""
-
-    if ! grep -qF "${source_line}" "${config_file}"; then
-        echo "${source_line}" >> "${config_file}"
-    fi
-}
-
-# Ensure hooks_path exists
-mkdir -p "$hooks_path"
-
-# Check and delete .bak files
-check_and_delete_bak "zsh.zsh"
-check_and_delete_bak "fish.fish"
+installation_failed=false
 
 # Process zsh.zsh
-process_file "zsh.zsh" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/zsh.zsh"
+if ! process_file "zsh.zsh" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/zsh.zsh"; then
+    installation_failed=true
+fi
 
 # Process fish.fish
-process_file "fish.fish" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/fish.fish"
+if ! process_file "fish.fish" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/fish.fish"; then
+    installation_failed=true
+fi
 
 # Process bash.bash
-process_file "bash-preexec.sh" "https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh"
-process_file "bash.bash" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/bash.bash"
+if ! process_file "bash-preexec.sh" "https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh"; then
+    installation_failed=true
+fi
+if ! process_file "bash.bash" "https://raw.githubusercontent.com/shelltime/installation/master/hooks/bash.bash"; then
+    installation_failed=true
+fi
 
 # Add source lines to config files
-if [ -f "$HOME/.zshrc" ]; then
+if [ -f "$HOME/.zshrc" ] && [ -f "${hooks_path}/zsh.zsh" ]; then
     add_source_to_config "$HOME/.zshrc" "${hooks_path}/zsh.zsh"
 fi
-if [ -f "$HOME/.config/fish/config.fish" ]; then
+if [ -f "$HOME/.config/fish/config.fish" ] && [ -f "${hooks_path}/fish.fish" ]; then
     add_source_to_config "$HOME/.config/fish/config.fish" "${hooks_path}/fish.fish"
 fi
-if [ -f "$HOME/.bashrc" ]; then
+if [ -f "$HOME/.bashrc" ] && [ -f "${hooks_path}/bash.bash" ] && [ -f "${hooks_path}/bash-preexec.sh" ]; then
     add_source_to_config "$HOME/.bashrc" "${hooks_path}/bash.bash"
 fi
 
@@ -308,9 +309,19 @@ if command_exists shelltime; then
 fi
 
 echo ""
+if [ "$installation_failed" = true ]; then
+    echo "Installation incomplete: some hooks could not be updated. Rerun the installer to retry." >&2
+    return 1
+fi
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Reload your shell:  source ~/.zshrc  (or ~/.bashrc / ~/.config/fish/config.fish)"
 echo "  2. Run:  shelltime init"
 echo ""
+}
+
+# Also run when piped to Bash, where BASH_SOURCE is empty.
+if [[ -z "${BASH_SOURCE[0]:-}" || "${BASH_SOURCE[0]}" == "$0" ]]; then
+    install_shelltime
+fi

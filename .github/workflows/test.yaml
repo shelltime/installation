@@ -21,6 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test installer regressions without network access
+        run: python3 -m unittest discover -s tests -v
+
       - name: Install Zsh and Fish on Ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -48,6 +51,10 @@ jobs:
         run: |
           bash ./install.bash
         shell: fish {0}
+
+      - name: Test install script in Bash
+        if: matrix.shell == 'bash'
+        run: bash ./install.bash
 
       - name: Verify installation
         run: |
