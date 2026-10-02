@@ -62,8 +62,15 @@ process_file() {
     fi
     if [ -f "${hooks_path}/${file}" ]; then
         # Keep the active hook in place until the final atomic replacement.
-        if ! cp -p -- "${hooks_path}/${file}" "${hooks_path}/${file}.bak"; then
+        local pending_backup
+        pending_backup=$(mktemp "${hooks_path}/${file}.bak.XXXXXX") || {
             rm -f -- "$pending_file"
+            return 1
+        }
+        installer_temp_files+=("$pending_backup")
+        if ! cp -p -- "${hooks_path}/${file}" "$pending_backup" ||
+           ! mv -- "$pending_backup" "${hooks_path}/${file}.bak"; then
+            rm -f -- "$pending_file" "$pending_backup"
             return 1
         fi
     fi

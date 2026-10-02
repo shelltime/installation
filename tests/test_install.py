@@ -114,6 +114,21 @@ fi''')
         self.assertEqual(backup.read_text(), "working hook")
         self.assertEqual(original.stat().st_mode & 0o777, 0o644)
 
+    def test_failed_backup_copy_preserves_existing_hook_and_backup(self):
+        self.enable_downloads()
+        original = self.hooks / "bash.bash"
+        backup = self.hooks / "bash.bash.bak"
+        original.write_text("working hook")
+        backup.write_text("previous backup")
+        self.stub("cp", 'echo "partial copy" > "${@: -1}"; exit 1')
+        result = self.run_script(
+            'hooks_path="$1"; process_file bash.bash https://example.invalid/hook', self.hooks,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(original.read_text(), "working hook")
+        self.assertEqual(backup.read_text(), "previous backup")
+        self.assertEqual(sorted(p.name for p in self.hooks.iterdir()), ["bash.bash", "bash.bash.bak"])
+
     def test_legacy_and_duplicate_source_lines_are_migrated_once(self):
         config = self.home / ".bashrc"
         hook = self.hooks / "bash.bash"
