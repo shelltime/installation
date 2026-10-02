@@ -16,7 +16,12 @@ This is the **shelltime installation** repository - a collection of shell script
 
 ## Testing
 
-Run the CI workflow locally or on GitHub Actions:
+Run the isolated regression suite with Python 3 (also run by CI):
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Run the shell installation workflow locally or on GitHub Actions:
 ```bash
 # The test workflow runs on ubuntu-latest and macos-latest
 # Testing shells: zsh, fish, bash

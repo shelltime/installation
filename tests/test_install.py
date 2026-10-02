@@ -121,7 +121,7 @@ fi''')
         config.write_text(f'# user config\nsource {hook}\nsource "{hook}"\n')
         result = self.run_script(
             'add_source_to_config "$1" "$2"; add_source_to_config "$1" "$2"; '
-            'source "$1"; echo "$loads"', config, hook,
+            'loads=0; source "$1"; echo "$loads"', config, hook,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "1")
@@ -205,6 +205,47 @@ fi''')
         self.assertNotIn("source ", fish_config.read_text())
         self.assertFalse((self.hooks / "fish.fish").exists())
         self.assertTrue((self.hooks / "bash.bash").exists())
+
+    def test_config_without_trailing_newline_is_preserved(self):
+        config = self.home / ".bashrc"
+        hook = self.hooks / "bash.bash"
+        config.write_text("# existing config")
+        result = self.run_script('add_source_to_config "$1" "$2"', config, hook)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(config.read_text(), f'# existing config\nsource "{hook}"\n')
+
+    def test_symlinked_config_target_and_permissions_are_preserved(self):
+        target = self.home / "shared.bashrc"
+        target.write_text("# shared config\n")
+        target.chmod(0o640)
+        config = self.home / ".bashrc"
+        config.symlink_to(target.name)
+        hook = self.hooks / "bash.bash"
+        result = self.run_script('add_source_to_config "$1" "$2"', config, hook)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(config.is_symlink())
+        self.assertEqual(os.readlink(config), target.name)
+        self.assertEqual(target.read_text(), f'# shared config\nsource "{hook}"\n')
+        self.assertEqual(target.stat().st_mode & 0o777, 0o640)
+
+    def test_interrupted_hook_download_cleans_pending_files(self):
+        self.enable_downloads()
+        original = self.hooks / "zsh.zsh"
+        original.write_text("working hook")
+        curl = self.binary_dir / "curl"
+        curl.write_text(curl.read_text().replace(
+            'echo "# updated hook" > "$output"', 'kill -TERM "$PPID"\n    exit 143',
+        ))
+        result = self.run_script()
+        self.assertEqual(result.returncode, 143, result.stderr)
+        self.assertEqual(original.read_text(), "working hook")
+        self.assertEqual(list(self.hooks.glob("zsh.zsh.*")), [])
+        self.assertEqual(list(self.root.glob("shelltime-install.*")), [])
+
+    def test_sourcing_helpers_preserves_the_callers_exit_trap(self):
+        result = self.run_script('trap "echo preserved" EXIT; source "$1"', SCRIPT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "preserved")
 
 
 if __name__ == "__main__":
