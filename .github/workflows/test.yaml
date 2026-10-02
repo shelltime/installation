@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir -p ~/.config/fish
           mkdir -p ~/.zsh
-          touch ~/.bashrc
+          touch ~/.bashrc ~/.zshrc ~/.config/fish/config.fish
 
       - name: Test install script in Zsh
         if: matrix.shell == 'zsh'
