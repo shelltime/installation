@@ -1,8 +1,14 @@
 #!/bin/bash
+set -euo pipefail
 
 # Determine the OS and architecture
 OS=$(uname -s)
 ARCH=$(uname -m)
+
+case "$OS" in
+    Darwin|Linux) ;;
+    *) echo "Unsupported OS: $OS. Use macOS, Linux, or WSL." >&2; exit 1 ;;
+esac
 
 # Function to check if a command is available
 command_exists() {
@@ -43,9 +49,8 @@ if [ "$BREW_INSTALLED" = false ]; then
 CLI_FILE_NAME="https://github.com/shelltime/cli/releases/latest/download/cli_"
 DAEMON_FILE_NAME="${CLI_FILE_NAME}daemon_"
 
-cd /tmp
-curr_time_dir="shelltime_install_$(date +"%Y%m%d_%H%M%S")"
-mkdir -p "$curr_time_dir"
+curr_time_dir=$(mktemp -d "${TMPDIR:-/tmp}/shelltime-install.XXXXXX")
+trap 'rm -rf -- "$curr_time_dir"' EXIT
 cd "$curr_time_dir"
 
 get_download_url() {
@@ -70,7 +75,7 @@ get_download_url() {
         baseUrl="${baseUrl}${OS}"
         if [[ "$ARCH" == "x86_64" ]]; then
             downloadUrl="${baseUrl}_x86_64.tar.gz"
-        elif [[ "$ARCH" == "aarch64" ]]; then
+        elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
             downloadUrl="${baseUrl}_arm64.tar.gz"
         else
             echo "Unsupported architecture: $ARCH on Linux"
@@ -84,7 +89,7 @@ get_download_url() {
         baseUrl="${baseUrl}Windows"
         if [[ "$ARCH" == "x86_64" ]]; then
             downloadUrl="${baseUrl}_x86_64.zip"
-        elif [[ "$ARCH" == "aarch64" ]]; then
+        elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
             downloadUrl="${baseUrl}_arm64.zip"
         else
             echo "Unsupported architecture: $ARCH on Windows"
@@ -106,7 +111,7 @@ URL=$(get_download_url "$CLI_FILE_NAME")
 
 # Download the file
 FILENAME=$(basename "$URL")
-curl -sSLO "$URL"
+curl -fSLO --connect-timeout 15 --max-time 300 "$URL"
 
 # Check if the download was successful
 if [ ! -f "$FILENAME" ]; then
@@ -141,8 +146,10 @@ fi
 
 # Move the binary to the appropriate location
 if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
+    chmod 755 shelltime
     mv shelltime "$HOME/.shelltime/bin/"
     if [ -f "shelltime-daemon" ]; then
+        chmod 755 shelltime-daemon
         mv shelltime-daemon "$HOME/.shelltime/bin/"
     else
         echo "" >&2
@@ -190,10 +197,7 @@ fi
 
 # Clean up
 
-cd /tmp
-if [ -d "/tmp/$curr_time_dir" ]; then
-    rm -rf "/tmp/$curr_time_dir"
-fi
+cd "${TMPDIR:-/tmp}"
 
 
 # HELP WANTED
@@ -243,20 +247,25 @@ process_file() {
     local file="$1"
     local url="$2"
 
-    # Check if the file exists and rename it
+    # Download successfully before replacing a working hook.
+    local pending_file
+    pending_file=$(mktemp "${hooks_path}/${file}.XXXXXX")
+    if ! curl -fsSL --connect-timeout 15 --max-time 60 "$url" -o "$pending_file"; then
+        rm -f -- "$pending_file"
+        echo "Error: Failed to download $file. Existing hook preserved." >&2
+        return 1
+    fi
     if [ -f "${hooks_path}/${file}" ]; then
         mv "${hooks_path}/${file}" "${hooks_path}/${file}.bak"
     fi
-
-    # Download the new file
-    curl -sSL "${url}" -o "${hooks_path}/${file}"
+    mv "$pending_file" "${hooks_path}/${file}"
 }
 
 # Function to add source line to config file if not already present
 add_source_to_config() {
     local config_file="$1"
     local source_file="$2"
-    local source_line="source ${source_file}"
+    local source_line="source \"${source_file}\""
 
     if ! grep -qF "${source_line}" "${config_file}"; then
         echo "${source_line}" >> "${config_file}"
@@ -293,7 +302,9 @@ fi
 
 # Reinstall daemon if shelltime is available
 if command_exists shelltime; then
-    shelltime daemon reinstall > /dev/null 2>&1
+    if ! shelltime daemon reinstall > /dev/null 2>&1; then
+        echo "Warning: Daemon setup failed. Run shelltime doctor after authentication." >&2
+    fi
 fi
 
 echo ""
