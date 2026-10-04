@@ -21,7 +21,30 @@ fi
 # On macOS, prefer Homebrew installation if brew is available
 if [[ "$OS" == "Darwin" ]] && command_exists brew; then
     echo "Homebrew detected on macOS. Attempting to install via brew..."
-    if brew install shelltime/tap/shelltime; then
+    # Refresh taps so a reinstall picks up the newest cask instead of whatever
+    # brew's auto-update throttle last fetched.
+    brew update --quiet
+
+    # The cask symlinks shelltime and shelltime-daemon into brew's bin dir and
+    # refuses to overwrite regular files there ("It seems there is already a
+    # Binary"). Such files are never Homebrew-managed (older `shelltime update`
+    # runs wrote them) and would also shadow the cask, so remove them.
+    BREW_BIN="$(brew --prefix)/bin"
+    for bin in shelltime shelltime-daemon; do
+        if [ -f "$BREW_BIN/$bin" ] && [ ! -L "$BREW_BIN/$bin" ]; then
+            rm -f "$BREW_BIN/$bin"
+            echo "Removed unmanaged $BREW_BIN/$bin (not installed by Homebrew)"
+        fi
+    done
+
+    # shelltime moved from a formula to a cask in the same tap, which Homebrew
+    # can't migrate automatically, so drop a leftover formula keg first.
+    if [ -d "$(brew --cellar)/shelltime" ]; then
+        echo "Removing old shelltime Homebrew formula (now shipped as a cask)..."
+        brew uninstall --formula shelltime
+    fi
+
+    if brew install --cask shelltime/tap/shelltime; then
         BREW_INSTALLED=true
         echo "Successfully installed shelltime via Homebrew."
         # Rename old manual-install binaries so the system uses the Homebrew version
@@ -293,7 +316,10 @@ fi
 
 # Reinstall daemon if shelltime is available
 if command_exists shelltime; then
-    shelltime daemon reinstall > /dev/null 2>&1
+    if ! daemon_output=$(shelltime daemon reinstall 2>&1); then
+        echo "Warning: 'shelltime daemon reinstall' failed:" >&2
+        echo "$daemon_output" >&2
+    fi
 fi
 
 echo ""
