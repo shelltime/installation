@@ -79,11 +79,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Outside a cloud environment cloud.bash installs nothing
+        run: |
+          set -euo pipefail
+          out=$(cat ./cloud.bash | env -u CLAUDE_CODE_REMOTE bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -q "only runs in Claude Code cloud environments" || { echo "missing the refusal"; exit 1; }
+          [ ! -e "$HOME/.shelltime" ] || { echo "~/.shelltime was created"; exit 1; }
+
       - name: Run cloud.bash the way a setup script does, twice
         run: |
           set -euo pipefail
           for run in 1 2; do
-            out=$(cat ./cloud.bash | bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
+            # A cloud environment's setup script runs with CLAUDE_CODE_REMOTE=true
+            out=$(cat ./cloud.bash | CLAUDE_CODE_REMOTE=true bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
             echo "$out"
             echo "$out" | grep -q "ShellTime is installed" || { echo "run $run did not finish"; exit 1; }
           done

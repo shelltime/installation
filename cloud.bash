@@ -9,7 +9,8 @@
 # The environment also needs SHELLTIME_TOKEN in its environment variables and
 # api.shelltime.xyz allowed by its network access. Setup scripts don't see the
 # environment's variables, so this only installs; a SessionStart hook signs in
-# with the token in every session.
+# with the token in every session. Anywhere CLAUDE_CODE_REMOTE isn't true, it
+# installs nothing.
 #
 # Guide: https://shelltime.xyz/blogs/track-claude-code-cloud-sessions
 
@@ -87,8 +88,10 @@ EOF
 }
 
 main() {
-    if [ "$(uname -s)" != "Linux" ]; then
-        echo "cloud.bash is for Claude Code cloud environments; on your own machine run: curl -sSL https://shelltime.xyz/i | bash" >&2
+    # Cloud environments set CLAUDE_CODE_REMOTE=true, and it's never true on
+    # your own machine, where this would swap in Linux binaries and add a hook
+    if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
+        echo "cloud.bash only runs in Claude Code cloud environments (CLAUDE_CODE_REMOTE=true); on your own machine run: curl -sSL https://shelltime.xyz/i | bash" >&2
         return 1
     fi
 

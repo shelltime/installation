@@ -18,7 +18,7 @@ To track Claude Code sessions that run in the cloud ([claude.ai/code](https://cl
 curl -fsSL https://raw.githubusercontent.com/shelltime/installation/main/cloud.bash | bash
 ```
 
-The environment also needs your ShellTime API token as `SHELLTIME_TOKEN` in its environment variables, and `api.shelltime.xyz` allowed by its network access. [cloud.bash](cloud.bash) installs the CLI and daemon, connects Claude Code, and adds a SessionStart hook that signs in with the token and starts the daemon in every session. It never fails the setup script. The full guide: [Track your Claude Code cloud sessions](https://shelltime.xyz/blogs/track-claude-code-cloud-sessions).
+The environment also needs your ShellTime API token as `SHELLTIME_TOKEN` in its environment variables, and `api.shelltime.xyz` allowed by its network access. [cloud.bash](cloud.bash) installs the CLI and daemon, connects Claude Code, and adds a SessionStart hook that signs in with the token and starts the daemon in every session. It never fails the setup script, and outside a cloud environment (where `CLAUDE_CODE_REMOTE` isn't `true`) it installs nothing. The full guide: [Track your Claude Code cloud sessions](https://shelltime.xyz/blogs/track-claude-code-cloud-sessions).
 
 ## What Next?
 
