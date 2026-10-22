@@ -108,6 +108,21 @@ jobs:
           jq -e '.env.OTEL_EXPORTER_OTLP_ENDPOINT' "$settings"
           count=$(jq --arg cmd "$hook" '[.hooks.SessionStart[].hooks[] | select(.command == $cmd)] | length' "$settings")
           [ "$count" = 1 ] || { echo "expected one SessionStart hook, found $count"; exit 1; }
-          # Without SHELLTIME_TOKEN the hook does nothing and prints nothing
+          config="$HOME/.shelltime/config.yaml"
+          daemon="$HOME/.shelltime/bin/shelltime-daemon"
+          # The hook prints nothing: a SessionStart hook's output goes into Claude's context
+          # Without SHELLTIME_TOKEN it signs in with the network secret's placeholder
           out=$(env -u SHELLTIME_TOKEN "$hook")
           [ -z "$out" ] || { echo "hook printed: $out"; exit 1; }
+          grep -qx "token: proxy-injected" "$config" || { echo "expected the proxy-injected token"; cat "$config"; exit 1; }
+          # and starts the daemon, once
+          for _ in 1 2 3 4 5; do pgrep -fx "$daemon" >/dev/null && break; sleep 1; done
+          pgrep -fx "$daemon" >/dev/null || { echo "daemon not started"; cat "$HOME/.shelltime/logs/shelltime-daemon.log"; exit 1; }
+          # SHELLTIME_TOKEN takes the placeholder's place, and back again once it's gone
+          out=$(SHELLTIME_TOKEN=st_v1_ci_token "$hook")
+          [ -z "$out" ] || { echo "hook printed: $out"; exit 1; }
+          grep -qx "token: st_v1_ci_token" "$config" || { echo "expected SHELLTIME_TOKEN"; cat "$config"; exit 1; }
+          env -u SHELLTIME_TOKEN "$hook"
+          grep -qx "token: proxy-injected" "$config" || { echo "expected the proxy-injected token again"; cat "$config"; exit 1; }
+          [ "$(pgrep -fxc "$daemon")" = 1 ] || { echo "expected one daemon"; pgrep -fxa "$daemon"; exit 1; }
+          pkill -fx "$daemon"
