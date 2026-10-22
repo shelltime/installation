@@ -6,11 +6,15 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/shelltime/installation/main/cloud.bash | bash
 #
-# The environment also needs SHELLTIME_TOKEN in its environment variables and
-# api.shelltime.xyz allowed by its network access. Setup scripts don't see the
-# environment's variables, so this only installs; a SessionStart hook signs in
-# with the token in every session. Anywhere CLAUDE_CODE_REMOTE isn't true, it
-# installs nothing.
+# Then add your ShellTime API token to the environment as a network secret for
+# api.shelltime.xyz, sent in the Authorization header with the prefix CLI.
+# Anthropic's agent proxy adds it to the daemon's requests after they leave the
+# session's VM, so the token is never in the VM, and the secret's host needs no
+# network access setting. An environment without network secrets can hold the
+# token in SHELLTIME_TOKEN among its environment variables instead, with
+# api.shelltime.xyz allowed by its network access. Setup scripts get neither,
+# so this only installs; a SessionStart hook signs in and starts the daemon in
+# every session. Anywhere CLAUDE_CODE_REMOTE isn't true, it installs nothing.
 #
 # Guide: https://shelltime.xyz/blogs/track-claude-code-cloud-sessions
 
@@ -59,18 +63,21 @@ connect_claude_code() {
 }
 
 # 3. The snapshot keeps files but no processes, there is no systemd, and only
-# the session sees SHELLTIME_TOKEN, so a SessionStart hook signs in and starts
-# the daemon in every session
+# sessions see SHELLTIME_TOKEN, so a SessionStart hook signs in and starts the
+# daemon in every session
 install_session_hook() {
     cat >"$HOOK_PATH" <<'EOF'
 #!/bin/bash
 # Claude Code SessionStart hook, installed by ShellTime's cloud.bash. Its stdout
 # would go into Claude's context, so it prints nothing.
 st="$HOME/.shelltime"
-[ -n "${SHELLTIME_TOKEN:-}" ] || exit 0
-# The first session, or a token changed in the environment settings
-if ! grep -qF "$SHELLTIME_TOKEN" "$st/config.yaml" 2>/dev/null; then
-    "$st/bin/shelltime" auth --token "$SHELLTIME_TOKEN" >/dev/null 2>&1 || exit 0
+# With the token in a network secret, the CLI signs in with the placeholder
+# proxy-injected and sends no Authorization header; the agent proxy adds the
+# real one. SHELLTIME_TOKEN, for environments without network secrets, wins.
+token="${SHELLTIME_TOKEN:-proxy-injected}"
+# The first session, or the token changed in the environment settings
+if ! grep -qF "$token" "$st/config.yaml" 2>/dev/null; then
+    "$st/bin/shelltime" auth --token "$token" >/dev/null 2>&1 || exit 0
 fi
 if ! pgrep -fx "$st/bin/shelltime-daemon" >/dev/null; then
     setsid nohup "$st/bin/shelltime-daemon" >>"$st/logs/shelltime-daemon.log" 2>&1 </dev/null &
@@ -99,7 +106,7 @@ main() {
     install_cli
     connect_claude_code
     install_session_hook
-    echo "ShellTime is installed; Claude Code sessions will be tracked once SHELLTIME_TOKEN is set"
+    echo "ShellTime is installed; Claude Code sessions will be tracked once your ShellTime token is a network secret for api.shelltime.xyz"
 }
 
 # Nothing runs before this line, so a download cut short installs nothing
