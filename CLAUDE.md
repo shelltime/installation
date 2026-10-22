@@ -9,6 +9,7 @@ This is the **shelltime installation** repository - a collection of shell script
 ## Repository Structure
 
 - `install.bash` - Main installation script that downloads shelltime CLI binaries and sets up shell hooks
+- `cloud.bash` - Setup for Claude Code cloud environments, run from an environment's setup script with `curl -fsSL https://raw.githubusercontent.com/shelltime/installation/main/cloud.bash | bash`. Installs the Linux CLI and daemon into `~/.shelltime/bin`, runs `shelltime cc install`, and adds a Claude Code SessionStart hook (`~/.shelltime/bin/cloud-session-start.sh`, embedded in the script) that signs in with `SHELLTIME_TOKEN` and starts the daemon in each session. It installs nothing unless `CLAUDE_CODE_REMOTE` is `true`, which cloud environments set (the setup script inherits it from `environment-manager`) and which is never true on a user's own machine. A setup script that exits non-zero stops sessions from starting, so it always exits 0 (its `EXIT` trap reports a failure instead), and nothing runs before the final `main` call, so a truncated download installs nothing. The guide that documents it is `content/blogs/track-claude-code-cloud-sessions/` in the web repo; keep the two in step
 - `hooks/` - Shell-specific hook scripts that track command execution:
   - `zsh.zsh` - Uses zsh's native `preexec` and `precmd` hooks
   - `bash.bash` - Uses `bash-preexec` library for preexec/precmd functionality
@@ -27,6 +28,8 @@ The CI verifies:
 1. Installation script runs successfully across shells
 2. Shell configuration files are properly sourced
 3. Hook files are placed in `~/.shelltime/hooks/`
+
+The `test-cloud` job checks that `cloud.bash` installs nothing without `CLAUDE_CODE_REMOTE=true`, then runs it twice with it on x86_64 and arm64 Linux and checks the binaries, the OTEL settings, that the SessionStart hook is registered exactly once, and that the hook prints nothing without `SHELLTIME_TOKEN`.
 
 ## How Shell Hooks Work
 
