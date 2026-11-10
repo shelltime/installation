@@ -24,10 +24,11 @@ Run the CI workflow locally or on GitHub Actions:
 bash ./install.bash
 ```
 
-The CI verifies:
-1. Installation script runs successfully across shells
-2. Shell configuration files are properly sourced
-3. Hook files are placed in `~/.shelltime/hooks/`
+Each `test-shells` job runs `bash ./install.bash` from its shell (zsh, fish or bash) with `$SHELL` naming it, as for a user whose login shell it is, in the runner's own home directory (macOS has no `~/.zshrc`, like a fresh account). macOS takes the Homebrew path, Linux the manual one. The CI verifies:
+1. Every hook and `bash-preexec.sh` are in `~/.shelltime/hooks/`, and `~/.shelltime/daemon/` exists
+2. The login shell's config file exists and sources its hook (`install.bash` creates it for the login shell, and `config.fish` whenever fish is installed)
+3. Homebrew path: the cask is installed and links `shelltime` and `shelltime-daemon` into brew's bin, with no `~/.shelltime/bin/shelltime` shadowing it. Manual path: both binaries are in `~/.shelltime/bin`, which the config puts on `PATH`
+4. A new interactive shell loads the hook's functions and runs that `shelltime` (bash needs `-i`: Ubuntu's default `~/.bashrc` returns early in a non-interactive shell)
 
 The `test-cloud` job checks that `cloud.bash` installs nothing without `CLAUDE_CODE_REMOTE=true`, then runs it twice with it on x86_64 and arm64 Linux and checks the binaries, the OTEL settings, that the SessionStart hook is registered exactly once, and that the hook prints nothing, signs in with `proxy-injected` (or `SHELLTIME_TOKEN` when set) and starts one daemon.
 
@@ -44,7 +45,7 @@ Bash requires the external `bash-preexec.sh` library (downloaded during installa
 
 ## Installation Paths
 
-- CLI binary: `~/.shelltime/bin/shelltime`
+- CLI binary: `~/.shelltime/bin/shelltime` (manual install), or brew's bin dir when macOS installs the `shelltime/tap/shelltime` cask
 - Hook scripts: `~/.shelltime/hooks/`
 - Daemon directory: `~/.shelltime/daemon/`
 

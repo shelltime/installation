@@ -61,6 +61,27 @@ if [[ "$OS" == "Darwin" ]] && command_exists brew; then
     fi
 fi
 
+# The shell config files the PATH entry and the hooks go into, created for both
+# install paths when they don't exist yet. The login shell ($SHELL, also under
+# `curl | bash`) always gets one: a fresh macOS account runs zsh with no
+# ~/.zshrc, and without it the shell would load no hook and the reload step
+# printed at the end would fail. config.fish is created whenever fish is
+# installed.
+ensure_config_file() {
+    local file="$1"
+    if [ ! -f "$file" ]; then
+        mkdir -p "$(dirname "$file")" && touch "$file"
+    fi
+}
+
+case "$(basename "${SHELL:-}")" in
+    zsh)  ensure_config_file "$HOME/.zshrc" ;;
+    bash) ensure_config_file "$HOME/.bashrc" ;;
+esac
+if command_exists fish; then
+    ensure_config_file "$HOME/.config/fish/config.fish"
+fi
+
 if [ "$BREW_INSTALLED" = false ]; then
 
 CLI_FILE_NAME="https://github.com/shelltime/cli/releases/latest/download/cli_"
@@ -189,13 +210,7 @@ if [[ "$OS" == "Darwin" ]] || [[ "$OS" == "Linux" ]]; then
     fi
 
     # For Fish
-    if command_exists fish; then
-        if [ ! -d "$HOME/.config/fish" ]; then
-            mkdir -p "$HOME/.config/fish"
-        fi
-        if [ ! -f "$HOME/.config/fish/config.fish" ]; then
-            touch "$HOME/.config/fish/config.fish"
-        fi
+    if [ -f "$HOME/.config/fish/config.fish" ]; then
         if ! grep -q '$HOME/.shelltime/bin' "$HOME/.config/fish/config.fish"; then
             echo '# Added by shelltime' >> "$HOME/.config/fish/config.fish"
             echo 'fish_add_path $HOME/.shelltime/bin' >> "$HOME/.config/fish/config.fish"
