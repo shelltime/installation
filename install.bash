@@ -322,10 +322,19 @@ if command_exists shelltime; then
     fi
 fi
 
+# The command that reloads the user's own shell ($SHELL is the login shell, also
+# under `curl | bash`), so the next steps name one file instead of three.
+case "$(basename "${SHELL:-}")" in
+    zsh)  reload_cmd="source ~/.zshrc" ;;
+    bash) reload_cmd="source ~/.bashrc" ;;
+    fish) reload_cmd="source ~/.config/fish/config.fish" ;;
+    *)    reload_cmd="source ~/.zshrc  (or ~/.bashrc / ~/.config/fish/config.fish)" ;;
+esac
+
 echo ""
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
-echo "  1. Reload your shell:  source ~/.zshrc  (or ~/.bashrc / ~/.config/fish/config.fish)"
+echo "  1. Open a new terminal, or reload this one:  ${reload_cmd}"
 echo "  2. Run:  shelltime init"
 echo ""
