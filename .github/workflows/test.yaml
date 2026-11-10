@@ -32,40 +32,73 @@ jobs:
         run: |
           brew install zsh fish
 
-      - name: Setup shell environment
-        run: |
-          mkdir -p ~/.config/fish
-          mkdir -p ~/.zsh
-          touch ~/.bashrc
-
+      # Each job installs from its shell the way a user whose login shell it is
+      # does: `bash ./install.bash` run from that shell, with $SHELL naming it
+      # (the runner's login shell is bash). The home directory is the runner's
+      # own, not seeded with config files: macOS has no ~/.zshrc, like a fresh
+      # account. macOS has brew, so it takes the Homebrew path; Linux takes the
+      # manual one.
       - name: Test install script in Zsh
         if: matrix.shell == 'zsh'
-        run: |
-          bash ./install.bash
+        run: SHELL=$(command -v zsh) bash ./install.bash
         shell: zsh {0}
       - name: Test install script in Fish
         if: matrix.shell == 'fish'
-        run: |
-          bash ./install.bash
+        run: SHELL=(command -v fish) bash ./install.bash
         shell: fish {0}
+      - name: Test install script in Bash
+        if: matrix.shell == 'bash'
+        run: SHELL=$(command -v bash) bash ./install.bash
+        shell: bash {0}
 
       - name: Verify installation
+        env:
+          LOGIN_SHELL: ${{ matrix.shell }}
         run: |
-          if [ "${{ matrix.shell }}" = "zsh" ]; then
-            zsh -c "source ~/.zshrc && echo 'Zsh configuration loaded'"
-          elif [ "${{ matrix.shell }}" = "fish" ]; then
-            fish -c "source ~/.config/fish/config.fish && echo 'Fish configuration loaded'"
-          elif [ "${{ matrix.shell }}" = "bash" ]; then
-            bash -c "source ~/.bashrc && echo 'Bash configuration loaded'"
-          fi
-          [ -f ~/.shelltime/hooks/bash-preexec.sh ] || (echo "bash-preexec.sh not found in ~/.shelltime/hooks!" && exit 1)
-          ls ~/.shelltime
-          if command -v brew >/dev/null 2>&1 && brew list shelltime >/dev/null 2>&1; then
-            which shelltime || (echo "shelltime not in PATH via Homebrew!" && exit 1)
+          set -euo pipefail
+          hooks="$HOME/.shelltime/hooks"
+          case "$LOGIN_SHELL" in
+            zsh)  rc="$HOME/.zshrc" ;;
+            bash) rc="$HOME/.bashrc" ;;
+            fish) rc="$HOME/.config/fish/config.fish" ;;
+          esac
+          ls -la "$HOME/.shelltime" "$hooks"
+
+          # Both paths download every shell's hook, and the bash-preexec.sh bash.bash sources
+          for f in zsh.zsh bash.bash bash-preexec.sh fish.fish; do
+            [ -s "$hooks/$f" ] || { echo "$hooks/$f is missing or empty"; exit 1; }
+          done
+          [ -d "$HOME/.shelltime/daemon" ] || { echo "$HOME/.shelltime/daemon is missing"; exit 1; }
+
+          # The login shell's config exists and sources its hook
+          [ -f "$rc" ] || { echo "$rc was not created"; exit 1; }
+          grep -qxF "source $hooks/$LOGIN_SHELL.$LOGIN_SHELL" "$rc" || { echo "$rc does not source the $LOGIN_SHELL hook:"; cat "$rc"; exit 1; }
+
+          if [ "$RUNNER_OS" = macOS ]; then
+            # Homebrew: the cask links both binaries into brew's bin dir, and
+            # nothing is left in ~/.shelltime/bin to shadow them
+            brew list --cask shelltime
+            bin="$(brew --prefix)/bin"
+            [ ! -e "$HOME/.shelltime/bin/shelltime" ] || { echo "$HOME/.shelltime/bin/shelltime shadows the cask"; exit 1; }
           else
-            ls ~/.shelltime/bin
+            # Manual: both binaries go in ~/.shelltime/bin, which the config puts on PATH
+            bin="$HOME/.shelltime/bin"
+            grep -qF '$HOME/.shelltime/bin' "$rc" || { echo "$rc does not put ~/.shelltime/bin on PATH:"; cat "$rc"; exit 1; }
           fi
-          ls ~/.shelltime/hooks
+          [ -x "$bin/shelltime" ] || { echo "$bin/shelltime is missing"; exit 1; }
+          [ -x "$bin/shelltime-daemon" ] || { echo "$bin/shelltime-daemon is missing"; exit 1; }
+          "$bin/shelltime" --version
+
+          # A new shell (one reading the config, as a new terminal does) has the
+          # hook loaded and runs this shelltime. The hook may print on startup,
+          # so the path is the last line.
+          case "$LOGIN_SHELL" in
+            zsh)  found=$(zsh -i -c '(( $+functions[preexec] && $+functions[precmd] )) && command -v shelltime' | tail -n 1) ;;
+            bash) found=$(bash -i -c '[[ " ${preexec_functions[*]} " == *" preexec_invoke_cmd "* && " ${precmd_functions[*]} " == *" precmd_invoke_cmd "* ]] && command -v shelltime' | tail -n 1) ;;
+            # fish reads config.fish in every shell, interactive or not
+            fish) found=$(fish -c 'functions -q fish_preexec fish_postexec; and command -v shelltime' | tail -n 1) ;;
+          esac || true
+          [ "$found" = "$bin/shelltime" ] || { echo "a new $LOGIN_SHELL shell did not load the hook and run $bin/shelltime (last line: '$found')"; exit 1; }
 
   test-cloud:
     runs-on: ${{ matrix.os }}
