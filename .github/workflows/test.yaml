@@ -115,12 +115,12 @@ jobs:
       - name: Outside a cloud environment cloud.bash installs nothing
         run: |
           set -euo pipefail
-          out=$(cat ./cloud.bash | env -u CLAUDE_CODE_REMOTE bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
+          out=$(cat ./cloud.bash | env -u CLAUDE_CODE_REMOTE -u CURSOR_CLOUD -u CURSOR_BACKGROUND_AGENT -u SHELLTIME_CLOUD bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
           echo "$out"
-          echo "$out" | grep -q "only runs in Claude Code cloud environments" || { echo "missing the refusal"; exit 1; }
+          echo "$out" | grep -q "only runs in cloud agent environments" || { echo "missing the refusal"; exit 1; }
           [ ! -e "$HOME/.shelltime" ] || { echo "~/.shelltime was created"; exit 1; }
 
-      - name: Run cloud.bash the way a setup script does, twice
+      - name: Run cloud.bash for Claude Code cloud, twice
         run: |
           set -euo pipefail
           for run in 1 2; do
@@ -130,7 +130,7 @@ jobs:
             echo "$out" | grep -q "ShellTime is installed" || { echo "run $run did not finish"; exit 1; }
           done
 
-      - name: Verify installation
+      - name: Verify Claude Code cloud installation
         run: |
           set -euo pipefail
           hook="$HOME/.shelltime/bin/cloud-session-start.sh"
@@ -159,3 +159,85 @@ jobs:
           grep -qx "token: proxy-injected" "$config" || { echo "expected the proxy-injected token again"; cat "$config"; exit 1; }
           [ "$(pgrep -fxc "$daemon")" = 1 ] || { echo "expected one daemon"; pgrep -fxa "$daemon"; exit 1; }
           pkill -fx "$daemon"
+
+      - name: Run cloud.bash for Antigravity cloud, twice
+        run: |
+          set -euo pipefail
+          AGY_HOME=$(mktemp -d)
+          # Preserve an existing unrelated hook group in hooks.json
+          mkdir -p "$AGY_HOME/.gemini/config"
+          echo '{"custom-hook":{"SessionStart":[{"type":"command","command":"echo {}"}]}}' >"$AGY_HOME/.gemini/config/hooks.json"
+
+          for run in 1 2; do
+            out=$(cat ./cloud.bash | env -u CLAUDE_CODE_REMOTE HOME="$AGY_HOME" SHELLTIME_CLOUD=true SHELLTIME_TOKEN=st_v1_agy_setup bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
+            echo "$out"
+            echo "$out" | grep -q "ShellTime is installed; Antigravity sessions" || { echo "run $run did not finish"; exit 1; }
+          done
+
+          hook="$AGY_HOME/.shelltime/bin/agy-cloud-session-start.sh"
+          hooks_json="$AGY_HOME/.gemini/config/hooks.json"
+          config="$AGY_HOME/.shelltime/config.yaml"
+          daemon="$AGY_HOME/.shelltime/bin/shelltime-daemon"
+
+          [ -x "$AGY_HOME/.shelltime/bin/shelltime" ] || { echo "shelltime missing"; exit 1; }
+          [ -x "$daemon" ] || { echo "shelltime-daemon missing"; exit 1; }
+          [ -x "$hook" ] || { echo "agy SessionStart hook missing"; exit 1; }
+          grep -qx "token: st_v1_agy_setup" "$config" || { echo "expected baked setup token"; cat "$config"; exit 1; }
+
+          # Verify strict JSON, separate "shelltime-cloud" group, no "shelltime" group, existing hook preserved
+          jq -e '."custom-hook".SessionStart | length == 1' "$hooks_json"
+          jq -e 'has("shelltime") | not' "$hooks_json"
+          jq -e --arg cmd "$hook" '."shelltime-cloud".SessionStart | length == 1 and .[0].command == $cmd' "$hooks_json"
+
+          # Hook prints {} (required by Antigravity), keeps baked token when env var is absent, and starts daemon once
+          out=$(env -u SHELLTIME_TOKEN HOME="$AGY_HOME" "$hook")
+          [ "$out" = "{}" ] || { echo "expected '{}', got: $out"; exit 1; }
+          grep -qx "token: st_v1_agy_setup" "$config" || { echo "baked token was overwritten"; cat "$config"; exit 1; }
+          for _ in 1 2 3 4 5; do pgrep -fx "$daemon" >/dev/null && [ -S /tmp/shelltime.sock ] && break; sleep 1; done
+          [ -S /tmp/shelltime.sock ] || { echo "daemon socket not created"; cat "$AGY_HOME/.shelltime/logs/shelltime-daemon.log"; exit 1; }
+          pgrep -fx "$daemon" >/dev/null || { echo "daemon not started"; cat "$AGY_HOME/.shelltime/logs/shelltime-daemon.log"; exit 1; }
+
+          # Runtime SHELLTIME_TOKEN overrides baked token and doesn't start a second daemon
+          out=$(SHELLTIME_TOKEN=st_v1_agy_runtime HOME="$AGY_HOME" "$hook")
+          [ "$out" = "{}" ] || { echo "expected '{}', got: $out"; exit 1; }
+          grep -qx "token: st_v1_agy_runtime" "$config" || { echo "expected runtime token"; cat "$config"; exit 1; }
+          [ "$(pgrep -fxc "$daemon")" = 1 ] || { echo "expected one daemon"; pgrep -fxa "$daemon"; exit 1; }
+          pkill -fx "$daemon"
+          rm -rf "$AGY_HOME"
+
+      - name: Run cloud.bash for Cursor Cloud Agents, twice
+        run: |
+          set -euo pipefail
+          CURSOR_HOME=$(mktemp -d)
+          mkdir -p "$CURSOR_HOME/.cursor"
+
+          # 1. Install step (no token yet, SHELLTIME_CLOUD=true + ~/.cursor present)
+          out=$(cat ./cloud.bash | env -u CLAUDE_CODE_REMOTE -u SHELLTIME_TOKEN HOME="$CURSOR_HOME" SHELLTIME_CLOUD=true bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -q "ShellTime is installed; Cursor Cloud Agent sessions" || { echo "install step did not finish"; exit 1; }
+
+          start_hook="$CURSOR_HOME/.shelltime/bin/cloud-start.sh"
+          config="$CURSOR_HOME/.shelltime/config.yaml"
+          daemon="$CURSOR_HOME/.shelltime/bin/shelltime-daemon"
+
+          [ -x "$CURSOR_HOME/.shelltime/bin/shelltime" ] || { echo "shelltime missing"; exit 1; }
+          [ -x "$daemon" ] || { echo "shelltime-daemon missing"; exit 1; }
+          [ -x "$start_hook" ] || { echo "cloud-start.sh missing"; exit 1; }
+          # Cursor Cloud Agents ignore ~/.cursor/hooks.json and should not get ~/.gemini/config/hooks.json
+          [ ! -e "$CURSOR_HOME/.cursor/hooks.json" ] || { echo "should not write ~/.cursor/hooks.json"; exit 1; }
+          [ ! -e "$CURSOR_HOME/.gemini/config/hooks.json" ] || { echo "should not write ~/.gemini/config/hooks.json"; exit 1; }
+
+          # 2. Start step with CURSOR_CLOUD=true and SHELLTIME_TOKEN starts the daemon immediately
+          out=$(cat ./cloud.bash | env -u CLAUDE_CODE_REMOTE -u SHELLTIME_CLOUD HOME="$CURSOR_HOME" CURSOR_CLOUD=true SHELLTIME_TOKEN=st_v1_cursor_token bash 2>&1) || { echo "$out"; echo "cloud.bash exited non-zero"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -q "ShellTime is installed; Cursor Cloud Agent sessions" || { echo "start step did not finish"; exit 1; }
+          grep -qx "token: st_v1_cursor_token" "$config" || { echo "expected cursor token"; cat "$config"; exit 1; }
+          for _ in 1 2 3 4 5; do pgrep -fx "$daemon" >/dev/null && [ -S /tmp/shelltime.sock ] && break; sleep 1; done
+          pgrep -fx "$daemon" >/dev/null || { echo "daemon not started"; cat "$CURSOR_HOME/.shelltime/logs/shelltime-daemon.log"; exit 1; }
+
+          # Re-running cloud-start.sh rotates token without starting a second daemon
+          SHELLTIME_TOKEN=st_v1_cursor_rotated HOME="$CURSOR_HOME" "$start_hook"
+          grep -qx "token: st_v1_cursor_rotated" "$config" || { echo "expected rotated cursor token"; cat "$config"; exit 1; }
+          [ "$(pgrep -fxc "$daemon")" = 1 ] || { echo "expected one daemon"; pgrep -fxa "$daemon"; exit 1; }
+          pkill -fx "$daemon"
+          rm -rf "$CURSOR_HOME"
